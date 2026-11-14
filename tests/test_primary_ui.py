@@ -14,9 +14,12 @@ def test_primary_ui_assets_exist_and_are_mounted() -> None:
 
     html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
     javascript = (root / "frontend" / "app.js").read_text(encoding="utf-8")
+    styles = (root / "frontend" / "styles.css").read_text(encoding="utf-8")
     assert 'id="file-upload"' in html
     assert 'id="load-sources"' in html
     assert "/knowledge/documents/upload" in javascript
     assert "MINIMUM_RESPONSE_LOADER_MS" in javascript
     assert "waitForMinimumLoaderTime" in javascript
+    assert ".answer-card{display:block}" in styles
+    assert ".answer-loader.hidden,.answer-content.hidden{display:none}" in styles
     assert "Activity" not in html
