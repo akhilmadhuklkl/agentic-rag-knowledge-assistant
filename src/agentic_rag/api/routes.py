@@ -2,9 +2,11 @@
 
 from fastapi import APIRouter, Depends
 
+from agentic_rag.agents.orchestrator import AgentOrchestrator
 from agentic_rag.api.schemas import (
     AnswerRequest,
     AnswerResponse,
+    AskResponse,
     CitationResponse,
     IndexPathRequest,
     IndexResponse,
@@ -16,6 +18,7 @@ from agentic_rag.config import Settings, get_settings
 from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
+from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
@@ -101,4 +104,28 @@ def answer(
         citations=[CitationResponse(**citation.__dict__) for citation in generated.citations],
         grounded=generated.grounded,
         refusal=generated.refusal,
+    )
+
+
+@router.post("/ask", response_model=AskResponse)
+def ask(
+    request: AnswerRequest,
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> AskResponse:
+    """Run orchestration, retrieval, generation, and verification together."""
+
+    assistant = KnowledgeAssistantService(
+        AgentOrchestrator(service),
+        GroundedAnswerService(build_answer_model(get_settings())),
+    )
+    response = assistant.ask(request.query, top_k=request.top_k)
+    return AskResponse(
+        answer=response.answer,
+        citations=[CitationResponse(**citation.__dict__) for citation in response.citations],
+        grounded=response.grounded,
+        refusal=response.refusal,
+        verified=response.verified,
+        verification_reason=response.verification_reason,
+        action=response.action.value,
+        attempts=response.attempts,
     )

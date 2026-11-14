@@ -64,3 +64,12 @@ class AnswerResponse(BaseModel):
     citations: list[CitationResponse]
     grounded: bool
     refusal: bool
+
+
+class AskResponse(AnswerResponse):
+    """Complete assistant workflow response."""
+
+    verified: bool
+    verification_reason: str
+    action: str
+    attempts: int
