@@ -75,7 +75,7 @@ class DocumentIndexingService:
         return hashlib.sha256(path.read_bytes()).hexdigest()
 
     def _load_manifest(self) -> dict[str, str]:
-        if not self.manifest_path.is_file():
+        if not self.manifest_path.is_file() or not self.vector_store.path.is_file():
             return {}
         return json.loads(self.manifest_path.read_text(encoding="utf-8"))
 
