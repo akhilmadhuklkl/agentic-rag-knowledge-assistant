@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -22,6 +23,18 @@ def create_app() -> FastAPI:
     configure_logging(settings.log_level)
     app = FastAPI(title=settings.app_name, version=__version__)
     app.include_router(knowledge_router)
+
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, error: ValueError) -> JSONResponse:
+        return JSONResponse(status_code=400, content={"detail": str(error)})
+
+    @app.exception_handler(FileNotFoundError)
+    async def file_not_found_handler(request: Request, error: FileNotFoundError) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": str(error)})
+
+    @app.exception_handler(httpx.HTTPError)
+    async def upstream_error_handler(request: Request, error: httpx.HTTPError) -> JSONResponse:
+        return JSONResponse(status_code=502, content={"detail": "Upstream model service failed"})
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):

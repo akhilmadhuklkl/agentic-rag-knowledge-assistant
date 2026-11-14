@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     api_key: str | None = None
     max_upload_size_bytes: int = 10_000_000
     max_question_length: int = 2_000
+    llm_max_retries: int = 2
 
     model_config = SettingsConfigDict(
         env_file=".env",
