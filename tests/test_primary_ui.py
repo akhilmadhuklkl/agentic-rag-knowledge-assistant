@@ -20,6 +20,8 @@ def test_primary_ui_assets_exist_and_are_mounted() -> None:
     assert "/knowledge/documents/upload" in javascript
     assert "MINIMUM_RESPONSE_LOADER_MS" in javascript
     assert "waitForMinimumLoaderTime" in javascript
+    assert "animateAnswer" in javascript
+    assert "requestAnimationFrame" in javascript
     assert ".answer-card{display:block}" in styles
     assert ".answer-loader.hidden,.answer-content.hidden{display:none}" in styles
     assert "Activity" not in html
