@@ -78,6 +78,7 @@ class CitationResponse(BaseModel):
     chunk_id: str
     source_name: str
     page_number: int | None
+    excerpt: str
 
 
 class AnswerResponse(BaseModel):

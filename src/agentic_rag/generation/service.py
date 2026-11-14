@@ -15,6 +15,7 @@ class Citation:
     chunk_id: str
     source_name: str
     page_number: int | None
+    excerpt: str
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ class GroundedAnswerService:
                 chunk_id=result.chunk.chunk_id,
                 source_name=result.chunk.source_name,
                 page_number=result.chunk.page_number,
+                excerpt=" ".join(result.chunk.text.split())[:360],
             )
             for index, result in enumerate(results, start=1)
         ]
