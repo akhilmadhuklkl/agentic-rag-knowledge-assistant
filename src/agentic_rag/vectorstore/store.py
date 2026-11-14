@@ -77,6 +77,11 @@ class LocalVectorStore:
             self._records = retained
             self._save()
 
+    def source_paths(self) -> set[str]:
+        """Return source paths represented in the vector store."""
+
+        return {str(record["chunk"]["source_path"]) for record in self._records}
+
     def _load(self) -> None:
         if self.path.is_file():
             self._records = json.loads(self.path.read_text(encoding="utf-8"))

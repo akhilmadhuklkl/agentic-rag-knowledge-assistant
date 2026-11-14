@@ -42,5 +42,14 @@ class SQLiteDocumentRepository:
                 (source_path, fingerprint),
             )
 
+    def delete_document(self, name: str) -> bool:
+        with self._connect() as connection:
+            result = connection.execute("DELETE FROM documents WHERE name = ?", (name,))
+        return result.rowcount > 0
+
+    def delete_fingerprint(self, source_path: str) -> None:
+        with self._connect() as connection:
+            connection.execute("DELETE FROM index_manifest WHERE source_path = ?", (source_path,))
+
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)

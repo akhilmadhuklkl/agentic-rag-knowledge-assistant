@@ -59,6 +59,19 @@ class DocumentStorageService:
             if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS
         ]
 
+    def delete(self, name: str) -> StoredDocument:
+        """Delete one stored document and return its metadata."""
+
+        path = self.root / self._safe_filename(name)
+        if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            raise FileNotFoundError(name)
+        document = self._metadata(path)
+        path.unlink()
+        if self.repository:
+            self.repository.delete_document(document.name)
+            self.repository.delete_fingerprint(document.path)
+        return document
+
     @staticmethod
     def _safe_filename(filename: str) -> str:
         name = Path(filename).name

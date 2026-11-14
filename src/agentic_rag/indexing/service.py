@@ -68,6 +68,29 @@ class DocumentIndexingService:
         metrics.increment("chunks_indexed_total", len(chunks))
         return IndexingSummary(1, len(chunks), str(self.vector_store.path), indexed_count=1)
 
+    def reindex_file(self, path: str | Path) -> IndexingSummary:
+        """Force a source to be re-read and re-embedded."""
+
+        return self.index_file(path, force=True)
+
+    def cleanup_missing_sources(self, directory: str | Path) -> int:
+        """Remove indexed sources that no longer exist under a directory."""
+
+        root = Path(directory).resolve()
+        removed = 0
+        for source_path in list(self.vector_store.source_paths()):
+            path = Path(source_path)
+            if path.is_relative_to(root) and not path.is_file():
+                self.vector_store.delete_source(source_path)
+                if self.metadata_repository:
+                    self.metadata_repository.delete_fingerprint(source_path)
+                else:
+                    self._manifest.pop(source_path, None)
+                removed += 1
+        if not self.metadata_repository:
+            self._save_manifest()
+        return removed
+
     def index_directory(self, directory: str | Path) -> IndexingSummary:
         """Index supported files in a directory in stable order."""
 

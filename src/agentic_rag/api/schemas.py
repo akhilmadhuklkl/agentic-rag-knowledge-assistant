@@ -24,6 +24,10 @@ class DocumentListResponse(BaseModel):
     documents: list[DocumentResponse]
 
 
+class CleanupResponse(BaseModel):
+    removed_sources: int
+
+
 class IndexResponse(BaseModel):
     """Summary returned after indexing."""
 

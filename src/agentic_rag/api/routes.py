@@ -1,5 +1,7 @@
 """Knowledge-base API routes."""
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, File, UploadFile
 
 from agentic_rag.agents.orchestrator import AgentOrchestrator
@@ -8,6 +10,7 @@ from agentic_rag.api.schemas import (
     AnswerResponse,
     AskResponse,
     CitationResponse,
+    CleanupResponse,
     ConversationListResponse,
     ConversationResponse,
     ConversationTurnResponse,
@@ -80,6 +83,19 @@ async def upload_document(
     return DocumentResponse(**document.__dict__)
 
 
+@router.delete("/documents/{name}", response_model=DocumentResponse)
+def delete_document(
+    name: str,
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> DocumentResponse:
+    """Delete a document and its indexed chunks."""
+
+    document = storage.delete(name)
+    indexing.vector_store.delete_source(document.path)
+    return DocumentResponse(**document.__dict__)
+
+
 @router.post("/index/file", response_model=IndexResponse)
 def index_file(
     request: IndexPathRequest,
@@ -100,6 +116,29 @@ def index_directory(
 
     summary = service.index_directory(request.path)
     return IndexResponse(**summary.__dict__)
+
+
+@router.post("/index/rebuild", response_model=IndexResponse)
+def rebuild_index(
+    request: IndexPathRequest,
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> IndexResponse:
+    """Force re-index all supported files in a directory."""
+
+    root = Path(request.path)
+    total = service.index_directory(root)
+    for path in sorted(root.iterdir()):
+        if path.is_file() and path.suffix.lower() in {".md", ".markdown", ".txt", ".pdf"}:
+            service.reindex_file(path)
+    return IndexResponse(**total.__dict__)
+
+
+@router.post("/index/cleanup", response_model=CleanupResponse)
+def cleanup_index(
+    request: IndexPathRequest,
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> CleanupResponse:
+    return CleanupResponse(removed_sources=service.cleanup_missing_sources(request.path))
 
 
 @router.post("/search", response_model=SearchResponse)
