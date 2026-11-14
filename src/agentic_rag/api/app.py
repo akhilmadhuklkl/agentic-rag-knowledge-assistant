@@ -2,7 +2,8 @@
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from agentic_rag import __version__
 from agentic_rag.api.routes import router as knowledge_router
@@ -25,6 +26,11 @@ def create_app() -> FastAPI:
     configure_logging(settings.log_level)
     app = FastAPI(title=settings.app_name, version=__version__)
     app.include_router(knowledge_router)
+    app.mount("/app", StaticFiles(directory="frontend", html=True), name="primary-ui")
+
+    @app.get("/", include_in_schema=False)
+    def primary_ui() -> RedirectResponse:
+        return RedirectResponse(url="/app/")
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, error: ValueError) -> JSONResponse:

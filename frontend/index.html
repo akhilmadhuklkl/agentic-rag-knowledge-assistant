@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#08111f" />
+    <title>Atlas Knowledge Workspace</title>
+    <link rel="stylesheet" href="/app/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark">✦</span><div><strong>Atlas</strong><small>Knowledge Workspace</small></div></div>
+        <div class="workspace-card"><span class="status-dot"></span><div><small>Workspace</small><strong>Local knowledge base</strong></div></div>
+        <nav class="nav"><a class="nav-item active" href="#ask">⌁ <span>Ask Atlas</span></a><a class="nav-item" href="#sources">▤ <span>Sources</span></a><a class="nav-item" href="#activity">◷ <span>Activity</span></a></nav>
+        <div class="sidebar-bottom"><div class="mini-label">SYSTEM STATUS</div><div class="system-row"><span class="status-dot"></span><span>Assistant online</span></div><div class="system-row muted"><span>⌁</span><span>Local-first mode</span></div></div>
+      </aside>
+      <main class="main">
+        <header class="topbar"><div><span class="eyebrow">KNOWLEDGE ASSISTANT</span><h1>Ask with confidence.</h1></div><div class="top-actions"><button class="icon-button" id="refresh-button" title="Refresh status">↻</button><span class="avatar">A</span></div></header>
+        <section class="hero" id="ask"><div class="hero-copy"><span class="kicker">GROUNDED INTELLIGENCE</span><h2>Find the answer.<br /><em>See the evidence.</em></h2><p>Ask questions across your trusted documents and get clear answers with sources you can verify.</p></div><div class="hero-orbit"><div class="orbit-ring ring-one"></div><div class="orbit-ring ring-two"></div><div class="orbit-core">✦</div></div></section>
+        <section class="ask-panel"><div class="panel-heading"><div><h3>What would you like to know?</h3><p>Atlas searches your indexed knowledge base and checks every response.</p></div><span class="mode-pill">● GROUNDED MODE</span></div><form id="ask-form"><textarea id="question" placeholder="Ask a question about your documents..." rows="3"></textarea><div class="form-footer"><div class="quick-prompts"><button type="button" class="prompt-chip">What is the refund policy?</button><button type="button" class="prompt-chip">Summarize the key policies</button></div><button class="primary-button" type="submit"><span>Ask Atlas</span><span>↗</span></button></div></form></section>
+        <section class="result-section hidden" id="result-section"><div class="result-heading"><div><span class="kicker">RESPONSE</span><h3>Grounded answer</h3></div><div id="result-meta" class="result-meta"></div></div><div class="answer-card"><div class="answer-icon">✦</div><div id="answer" class="answer-text"></div></div><div class="sources-heading"><h3>Evidence used</h3><span id="source-count"></span></div><div id="sources" class="source-grid"></div></section>
+        <section class="lower-grid" id="activity"><div class="info-card"><div class="card-icon blue">⌁</div><div><span class="kicker">RETRIEVAL</span><h4>Hybrid search</h4><p>Semantic meaning meets exact keyword matching for more reliable results.</p></div></div><div class="info-card"><div class="card-icon purple">✓</div><div><span class="kicker">VERIFICATION</span><h4>Evidence checked</h4><p>Every answer carries source metadata and an honest confidence state.</p></div></div></section>
+        <section class="sources-panel" id="sources"><div class="panel-heading"><div><span class="kicker">KNOWLEDGE BASE</span><h3>Manage your sources</h3><p>Upload documents or refresh the local document directory.</p></div><button id="load-sources" class="secondary-button">Refresh sources</button></div><div id="source-list" class="source-list"><div class="empty-state">No source list loaded yet.</div></div></section>
+      </main>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="/app/app.js"></script>
+  </body>
+</html>
