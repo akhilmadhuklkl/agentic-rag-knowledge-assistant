@@ -18,7 +18,10 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
     """Build the application service from runtime configuration."""
 
-    return DocumentIndexingService(settings.vector_store_path)
+    return DocumentIndexingService(
+        settings.vector_store_path,
+        semantic_weight=settings.retrieval_semantic_weight,
+    )
 
 
 @router.post("/index/file", response_model=IndexResponse)
@@ -50,7 +53,12 @@ def search(
 ) -> SearchResponse:
     """Search the indexed knowledge base and return citation metadata."""
 
-    results = service.search(request.query, request.top_k)
+    results = service.search(
+        request.query,
+        request.top_k,
+        source_name=request.source_name,
+        file_type=request.file_type,
+    )
     return SearchResponse(
         results=[
             SearchResultResponse(

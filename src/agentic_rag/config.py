@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     llm_provider: str = "local"
     embedding_provider: str = "local"
     vector_store_path: str = "data/vectorstore"
+    retrieval_semantic_weight: float = 0.7
+    default_top_k: int = 5
+    max_top_k: int = 50
 
     model_config = SettingsConfigDict(
         env_file=".env",

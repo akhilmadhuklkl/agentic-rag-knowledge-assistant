@@ -26,7 +26,13 @@ class HybridRetrievalService:
         self.vector_store = vector_store
         self.semantic_weight = semantic_weight
 
-    def search(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        source_name: str | None = None,
+        file_type: str | None = None,
+    ) -> list[RetrievalResult]:
         """Return deduplicated, hybrid-ranked evidence."""
 
         if not query.strip():
@@ -34,7 +40,12 @@ class HybridRetrievalService:
         if top_k <= 0:
             raise ValueError("top_k must be positive")
 
-        candidates = self.vector_store.search(query, top_k=max(top_k * 4, 20))
+        candidates = self.vector_store.search(
+            query,
+            top_k=max(top_k * 4, 20),
+            source_name=source_name,
+            file_type=file_type,
+        )
         query_tokens = self._tokens(query)
         results = [
             RetrievalResult(
@@ -46,7 +57,11 @@ class HybridRetrievalService:
             )
             for result in candidates
         ]
-        return sorted(results, key=lambda result: result.score, reverse=True)[:top_k]
+        return [
+            result
+            for result in sorted(results, key=lambda result: result.score, reverse=True)
+            if result.score > 0
+        ][:top_k]
 
     @staticmethod
     def _tokens(text: str) -> set[str]:

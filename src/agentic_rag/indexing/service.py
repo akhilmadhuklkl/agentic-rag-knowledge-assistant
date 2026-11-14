@@ -26,10 +26,12 @@ class DocumentIndexingService:
         vector_store_path: str | Path,
         ingestion_service: DocumentIngestionService | None = None,
         embedding_provider: LocalHashEmbeddingProvider | None = None,
+        semantic_weight: float = 0.7,
     ) -> None:
         self.ingestion_service = ingestion_service or DocumentIngestionService()
         self.embedding_provider = embedding_provider or LocalHashEmbeddingProvider()
         self.vector_store = LocalVectorStore(vector_store_path, self.embedding_provider)
+        self.semantic_weight = semantic_weight
 
     def index_file(self, path: str | Path) -> IndexingSummary:
         """Index one file and return the operation summary."""
@@ -52,7 +54,15 @@ class DocumentIndexingService:
         self.vector_store.add(chunks)
         return IndexingSummary(source_count, len(chunks), str(self.vector_store.path))
 
-    def search(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        source_name: str | None = None,
+        file_type: str | None = None,
+    ) -> list[RetrievalResult]:
         """Search indexed content through the hybrid retrieval layer."""
 
-        return HybridRetrievalService(self.vector_store).search(query, top_k)
+        return HybridRetrievalService(
+            self.vector_store, semantic_weight=self.semantic_weight
+        ).search(query, top_k, source_name=source_name, file_type=file_type)

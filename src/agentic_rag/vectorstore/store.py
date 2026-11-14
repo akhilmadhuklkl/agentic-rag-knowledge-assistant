@@ -36,7 +36,13 @@ class LocalVectorStore:
         self._records = list(existing.values())
         self._save()
 
-    def search(self, query: str, top_k: int = 5) -> list[SearchResult]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        source_name: str | None = None,
+        file_type: str | None = None,
+    ) -> list[SearchResult]:
         """Return the highest-scoring chunks for a query."""
 
         if top_k <= 0:
@@ -48,6 +54,11 @@ class LocalVectorStore:
                 score=self._cosine(query_vector, record["vector"]),
             )
             for record in self._records
+            if (source_name is None or record["chunk"]["source_name"] == source_name)
+            and (
+                file_type is None
+                or record["chunk"]["file_type"] == file_type.lower().lstrip(".")
+            )
         ]
         return sorted(scored, key=lambda result: result.score, reverse=True)[:top_k]
 

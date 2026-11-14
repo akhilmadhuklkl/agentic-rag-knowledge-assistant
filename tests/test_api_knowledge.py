@@ -31,3 +31,17 @@ def test_search_route_returns_citation_ready_results() -> None:
     assert response.results[0].source_name == "policy.md"
     assert response.results[0].page_number is None
     assert response.results[0].score > 0
+
+
+def test_search_route_accepts_source_filters() -> None:
+    store_path = RUNTIME / "api-filter.json"
+    store_path.unlink(missing_ok=True)
+    service = DocumentIndexingService(store_path)
+    service.index_directory(FIXTURES / "directory")
+
+    response = search(
+        SearchRequest(query="first", top_k=5, source_name="b.txt"),
+        service,
+    )
+
+    assert response.results == []

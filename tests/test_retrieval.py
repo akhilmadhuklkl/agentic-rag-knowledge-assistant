@@ -36,3 +36,16 @@ def test_hybrid_retrieval_rejects_invalid_queries() -> None:
         assert "query" in str(error)
     else:
         raise AssertionError("Expected empty query to be rejected")
+
+
+def test_hybrid_retrieval_filters_by_source_metadata() -> None:
+    results = build_retrieval_service().search("first", source_name="b.txt")
+
+    assert results == []
+
+
+def test_hybrid_retrieval_normalizes_file_type_filter() -> None:
+    results = build_retrieval_service().search("first", file_type=".md")
+
+    assert len(results) == 1
+    assert results[0].chunk.file_type == "md"
