@@ -17,4 +17,6 @@ def test_primary_ui_assets_exist_and_are_mounted() -> None:
     assert 'id="file-upload"' in html
     assert 'id="load-sources"' in html
     assert "/knowledge/documents/upload" in javascript
+    assert "MINIMUM_RESPONSE_LOADER_MS" in javascript
+    assert "waitForMinimumLoaderTime" in javascript
     assert "Activity" not in html
