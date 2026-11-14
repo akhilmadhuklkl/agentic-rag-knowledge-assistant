@@ -21,6 +21,19 @@ Implementation will be added incrementally from document ingestion through retri
 
 The implementation has not started yet. The first coding task will establish the Python application, configuration, document fixtures, and test baseline.
 
+## Run the local service
+
+```powershell
+python -m pip install -e ".[dev]"
+uvicorn agentic_rag.api.app:app --reload
+```
+
+In another terminal, verify the live API:
+
+```powershell
+python scripts/smoke_test.py
+```
+
 ## Repository principles
 
 - Retrieved content is evidence, not instructions.
