@@ -17,6 +17,7 @@ from agentic_rag.api.schemas import (
     SearchResultResponse,
 )
 from agentic_rag.config import Settings, get_settings
+from agentic_rag.conversations.store import ConversationStore
 from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
@@ -24,6 +25,7 @@ from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
+conversation_store = ConversationStore()
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
@@ -150,11 +152,15 @@ def ask(
 ) -> AskResponse:
     """Run orchestration, retrieval, generation, and verification together."""
 
+    conversation_id = request.conversation_id or conversation_store.create()
+    history = conversation_store.get(conversation_id)
+    contextual_query = conversation_store.contextual_query(request.query, history)
     assistant = KnowledgeAssistantService(
         AgentOrchestrator(service),
         GroundedAnswerService(build_answer_model(get_settings())),
     )
-    response = assistant.ask(request.query, top_k=request.top_k)
+    response = assistant.ask(contextual_query, top_k=request.top_k)
+    conversation_store.append(conversation_id, request.query, response.answer)
     return AskResponse(
         answer=response.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in response.citations],
@@ -165,4 +171,5 @@ def ask(
         action=response.action.value,
         attempts=response.attempts,
         duration_ms=response.duration_ms,
+        conversation_id=conversation_id,
     )

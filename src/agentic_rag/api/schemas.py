@@ -64,6 +64,8 @@ class SearchResponse(BaseModel):
 class AnswerRequest(SearchRequest):
     """Request to retrieve evidence and generate a grounded answer."""
 
+    conversation_id: str | None = Field(default=None, max_length=64)
+
 
 class CitationResponse(BaseModel):
     """Citation returned with a grounded answer."""
@@ -91,3 +93,4 @@ class AskResponse(AnswerResponse):
     action: str
     attempts: int
     duration_ms: float
+    conversation_id: str
