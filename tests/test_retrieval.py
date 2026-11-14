@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from agentic_rag.embeddings.local import LocalHashEmbeddingProvider
+from agentic_rag.ingestion.models import DocumentChunk
 from agentic_rag.ingestion.service import DocumentIngestionService
 from agentic_rag.retrieval.service import HybridRetrievalService
 from agentic_rag.vectorstore.store import LocalVectorStore
@@ -49,3 +50,12 @@ def test_hybrid_retrieval_normalizes_file_type_filter() -> None:
 
     assert len(results) == 1
     assert results[0].chunk.file_type == "md"
+
+
+def test_hybrid_retrieval_boosts_exact_multi_word_phrases() -> None:
+    service = build_retrieval_service()
+    exact = DocumentChunk("exact", "first second", "a.md", "a.md", "md", None, 0)
+    separated = DocumentChunk("separated", "first item, then second", "b.txt", "b.txt", "txt", None, 0)
+
+    assert service._phrase_score("first second", exact) == 1.0
+    assert service._phrase_score("first second", separated) == 0.0

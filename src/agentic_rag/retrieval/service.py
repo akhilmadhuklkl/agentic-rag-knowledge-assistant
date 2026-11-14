@@ -53,7 +53,8 @@ class HybridRetrievalService:
             RetrievalResult(
                 chunk=result.chunk,
                 score=(self.semantic_weight * result.score)
-                + ((1 - self.semantic_weight) * self._lexical_score(query_tokens, result.chunk)),
+                + ((1 - self.semantic_weight) * self._lexical_score(query_tokens, result.chunk))
+                + (0.1 * self._phrase_score(query, result.chunk)),
                 semantic_score=result.score,
                 lexical_score=self._lexical_score(query_tokens, result.chunk),
             )
@@ -77,3 +78,17 @@ class HybridRetrievalService:
             return 0.0
         chunk_tokens = cls._tokens(chunk.text)
         return len(query_tokens & chunk_tokens) / len(query_tokens)
+
+    @classmethod
+    def _phrase_score(cls, query: str, chunk: DocumentChunk) -> float:
+        """Boost chunks containing the user's exact multi-word phrase."""
+
+        normalized_query = " ".join(cls._tokens_in_order(query))
+        normalized_text = " ".join(cls._tokens_in_order(chunk.text))
+        if len(normalized_query.split()) < 2 or not normalized_query:
+            return 0.0
+        return 1.0 if normalized_query in normalized_text else 0.0
+
+    @staticmethod
+    def _tokens_in_order(text: str) -> list[str]:
+        return re.findall(r"[\w'-]+", text.lower())
