@@ -15,6 +15,7 @@ from agentic_rag.observability import (
     log_event,
     set_request_id,
 )
+from agentic_rag.security.auth import authenticate_request
 
 
 def create_app() -> FastAPI:
@@ -41,12 +42,17 @@ def create_app() -> FastAPI:
     async def request_context(request: Request, call_next):
         request_id = request.headers.get(REQUEST_ID_HEADER) or create_request_id()
         set_request_id(request_id)
-        if (
-            settings.api_key
-            and request.url.path != "/health"
-            and request.headers.get("X-API-Key") != settings.api_key
-        ):
-            return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+        if request.url.path != "/health":
+            try:
+                identity = authenticate_request(dict(request.headers), settings)
+            except PermissionError as error:
+                status_code = 401 if "API key" in str(error) else 403
+                return JSONResponse(status_code=status_code, content={"detail": str(error)})
+            log_event(
+                "request_authenticated",
+                user_id=identity.user_id,
+                workspace_id=identity.workspace_id,
+            )
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request_id
         log_event("http_request_completed", method=request.method, path=request.url.path)

@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     default_top_k: int = 5
     max_top_k: int = 50
     api_key: str | None = None
+    workspace_id: str = "default"
+    require_workspace_header: bool = False
     max_upload_size_bytes: int = 10_000_000
     max_question_length: int = 2_000
     llm_max_retries: int = 2
