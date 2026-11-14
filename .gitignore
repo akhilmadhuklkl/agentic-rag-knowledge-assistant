@@ -17,6 +17,7 @@ venv/
 data/vectorstore/
 data/uploads/
 logs/
+tests/.runtime/
 coverage.xml
 htmlcov/
 
