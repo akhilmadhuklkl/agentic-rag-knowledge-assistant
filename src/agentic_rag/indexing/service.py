@@ -10,6 +10,7 @@ from agentic_rag.embeddings.local import LocalHashEmbeddingProvider
 from agentic_rag.ingestion.service import DocumentIngestionService
 from agentic_rag.metrics import metrics
 from agentic_rag.retrieval.service import HybridRetrievalService, RetrievalResult
+from agentic_rag.storage.documents import StoredDocument
 from agentic_rag.vectorstore.store import LocalVectorStore
 
 
@@ -57,6 +58,15 @@ class DocumentIndexingService:
             metrics.increment("documents_index_skipped_total")
             return IndexingSummary(1, 0, str(self.vector_store.path), skipped_count=1)
         chunks = self.ingestion_service.ingest_file(source_path)
+        if self.metadata_repository:
+            self.metadata_repository.upsert_document(
+                StoredDocument(
+                    name=source_path.name,
+                    path=str(source_path),
+                    size_bytes=source_path.stat().st_size,
+                    file_type=source_path.suffix.lower().lstrip("."),
+                )
+            )
         self.vector_store.delete_source(str(source_path))
         self.vector_store.add(chunks)
         if self.metadata_repository:
