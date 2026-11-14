@@ -128,4 +128,5 @@ def ask(
         verification_reason=response.verification_reason,
         action=response.action.value,
         attempts=response.attempts,
+        duration_ms=response.duration_ms,
     )

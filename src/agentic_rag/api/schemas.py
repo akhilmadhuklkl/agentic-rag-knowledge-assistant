@@ -73,3 +73,4 @@ class AskResponse(AnswerResponse):
     verification_reason: str
     action: str
     attempts: int
+    duration_ms: float

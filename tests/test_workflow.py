@@ -24,6 +24,7 @@ def test_end_to_end_workflow_returns_verified_cited_answer() -> None:
     assert response.verified is True
     assert response.refusal is False
     assert response.citations[0].source_name == "policy.md"
+    assert response.duration_ms >= 0
 
 
 def test_end_to_end_workflow_returns_verified_refusal() -> None:
