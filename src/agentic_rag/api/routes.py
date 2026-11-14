@@ -3,6 +3,9 @@
 from fastapi import APIRouter, Depends
 
 from agentic_rag.api.schemas import (
+    AnswerRequest,
+    AnswerResponse,
+    CitationResponse,
     IndexPathRequest,
     IndexResponse,
     SearchRequest,
@@ -10,6 +13,7 @@ from agentic_rag.api.schemas import (
     SearchResultResponse,
 )
 from agentic_rag.config import Settings, get_settings
+from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -72,4 +76,26 @@ def search(
             )
             for result in results
         ]
+    )
+
+
+@router.post("/answer", response_model=AnswerResponse)
+def answer(
+    request: AnswerRequest,
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> AnswerResponse:
+    """Retrieve evidence and return a citation-aware grounded answer."""
+
+    results = service.search(
+        request.query,
+        request.top_k,
+        source_name=request.source_name,
+        file_type=request.file_type,
+    )
+    generated = GroundedAnswerService().generate(request.query, results)
+    return AnswerResponse(
+        answer=generated.answer,
+        citations=[CitationResponse(**citation.__dict__) for citation in generated.citations],
+        grounded=generated.grounded,
+        refusal=generated.refusal,
     )

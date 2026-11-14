@@ -42,3 +42,25 @@ class SearchResponse(BaseModel):
     """Search response containing ranked evidence."""
 
     results: list[SearchResultResponse]
+
+
+class AnswerRequest(SearchRequest):
+    """Request to retrieve evidence and generate a grounded answer."""
+
+
+class CitationResponse(BaseModel):
+    """Citation returned with a grounded answer."""
+
+    citation_id: int
+    chunk_id: str
+    source_name: str
+    page_number: int | None
+
+
+class AnswerResponse(BaseModel):
+    """Grounded answer response."""
+
+    answer: str
+    citations: list[CitationResponse]
+    grounded: bool
+    refusal: bool
