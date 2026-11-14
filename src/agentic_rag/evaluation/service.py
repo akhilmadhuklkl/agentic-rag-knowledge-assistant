@@ -1,0 +1,79 @@
+"""Run repeatable quality checks against the assistant workflow."""
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+
+from agentic_rag.workflow.service import KnowledgeAssistantService
+
+
+@dataclass(frozen=True)
+class EvaluationCase:
+    question: str
+    expected_source: str | None = None
+    expected_answer_contains: str | None = None
+    expected_refusal: bool = False
+
+
+@dataclass(frozen=True)
+class EvaluationReport:
+    total_cases: int
+    retrieval_hits: int
+    answer_matches: int
+    citation_hits: int
+    correct_refusals: int
+
+    @property
+    def retrieval_hit_rate(self) -> float:
+        return self._rate(self.retrieval_hits)
+
+    @property
+    def answer_match_rate(self) -> float:
+        return self._rate(self.answer_matches)
+
+    @property
+    def citation_accuracy(self) -> float:
+        return self._rate(self.citation_hits)
+
+    @property
+    def refusal_accuracy(self) -> float:
+        return self._rate(self.correct_refusals)
+
+    def _rate(self, value: int) -> float:
+        return value / self.total_cases if self.total_cases else 0.0
+
+
+class EvaluationService:
+    """Evaluate an assistant against expected source and answer behavior."""
+
+    def __init__(self, assistant: KnowledgeAssistantService) -> None:
+        self.assistant = assistant
+
+    @staticmethod
+    def load_cases(path: str | Path) -> list[EvaluationCase]:
+        """Load evaluation cases from a JSON array."""
+
+        values = json.loads(Path(path).read_text(encoding="utf-8"))
+        return [EvaluationCase(**value) for value in values]
+
+    def run(self, cases: list[EvaluationCase]) -> EvaluationReport:
+        """Run all cases and calculate simple quality metrics."""
+
+        retrieval_hits = answer_matches = citation_hits = correct_refusals = 0
+        for case in cases:
+            response = self.assistant.ask(case.question)
+            source_names = {citation.source_name for citation in response.citations}
+            if case.expected_source is not None and case.expected_source in source_names:
+                retrieval_hits += 1
+                citation_hits += 1
+            if case.expected_answer_contains is None or case.expected_answer_contains.lower() in response.answer.lower():
+                answer_matches += 1
+            if response.refusal is case.expected_refusal:
+                correct_refusals += 1
+        return EvaluationReport(
+            total_cases=len(cases),
+            retrieval_hits=retrieval_hits,
+            answer_matches=answer_matches,
+            citation_hits=citation_hits,
+            correct_refusals=correct_refusals,
+        )

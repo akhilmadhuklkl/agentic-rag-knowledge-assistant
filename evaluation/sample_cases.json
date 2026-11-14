@@ -1,0 +1,12 @@
+[
+  {
+    "question": "What is the refund policy?",
+    "expected_source": "policy.md",
+    "expected_answer_contains": "thirty days",
+    "expected_refusal": false
+  },
+  {
+    "question": "What is the quantum spaceship launch protocol?",
+    "expected_refusal": true
+  }
+]
