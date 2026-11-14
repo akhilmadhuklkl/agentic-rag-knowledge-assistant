@@ -94,3 +94,23 @@ class AskResponse(AnswerResponse):
     attempts: int
     duration_ms: float
     conversation_id: str
+
+
+class ConversationTurnResponse(BaseModel):
+    """One persisted conversation turn."""
+
+    question: str
+    answer: str
+
+
+class ConversationResponse(BaseModel):
+    """Conversation history response."""
+
+    conversation_id: str
+    turns: list[ConversationTurnResponse]
+
+
+class ConversationListResponse(BaseModel):
+    """Known conversation IDs."""
+
+    conversation_ids: list[str]

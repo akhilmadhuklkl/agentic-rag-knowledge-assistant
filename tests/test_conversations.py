@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from agentic_rag.conversations.store import ConversationStore
 
 
@@ -25,3 +27,16 @@ def test_conversation_store_limits_history_and_builds_context() -> None:
     assert [turn.question for turn in history] == ["second", "third"]
     assert "Previous conversation topics" in contextual
     assert "Current question: follow up" in contextual
+
+
+def test_conversation_store_persists_and_deletes() -> None:
+    path = Path(__file__).parent / ".runtime" / "conversations.json"
+    path.unlink(missing_ok=True)
+    store = ConversationStore(path=path)
+    conversation_id = store.create()
+    store.append(conversation_id, "question", "answer")
+
+    restored = ConversationStore(path=path)
+    assert restored.get(conversation_id)[0].answer == "answer"
+    assert restored.delete(conversation_id) is True
+    assert restored.list_ids() == []

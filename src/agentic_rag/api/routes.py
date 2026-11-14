@@ -8,6 +8,9 @@ from agentic_rag.api.schemas import (
     AnswerResponse,
     AskResponse,
     CitationResponse,
+    ConversationListResponse,
+    ConversationResponse,
+    ConversationTurnResponse,
     DocumentListResponse,
     DocumentResponse,
     IndexPathRequest,
@@ -25,7 +28,7 @@ from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
-conversation_store = ConversationStore()
+conversation_store = ConversationStore(path=get_settings().conversation_store_path)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
@@ -173,3 +176,32 @@ def ask(
         duration_ms=response.duration_ms,
         conversation_id=conversation_id,
     )
+
+
+@router.get("/conversations", response_model=ConversationListResponse)
+def list_conversations() -> ConversationListResponse:
+    """List persisted conversation IDs."""
+
+    return ConversationListResponse(conversation_ids=conversation_store.list_ids())
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
+def get_conversation(conversation_id: str) -> ConversationResponse:
+    """Return one persisted conversation history."""
+
+    turns = conversation_store.get(conversation_id)
+    if not turns and conversation_id not in conversation_store.list_ids():
+        raise FileNotFoundError(f"Conversation not found: {conversation_id}")
+    return ConversationResponse(
+        conversation_id=conversation_id,
+        turns=[ConversationTurnResponse(**turn.__dict__) for turn in turns],
+    )
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(conversation_id: str) -> dict[str, str]:
+    """Delete one persisted conversation."""
+
+    if not conversation_store.delete(conversation_id):
+        raise FileNotFoundError(f"Conversation not found: {conversation_id}")
+    return {"status": "deleted", "conversation_id": conversation_id}
