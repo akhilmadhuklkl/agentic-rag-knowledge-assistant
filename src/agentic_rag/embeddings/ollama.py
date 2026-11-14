@@ -51,4 +51,24 @@ class OllamaEmbeddingProvider:
     def embed_many(self, texts: list[str]) -> list[list[float]]:
         """Create vectors in input order."""
 
-        return [self.embed(text) for text in texts]
+        if not texts:
+            return []
+
+        def request() -> httpx.Response:
+            response = httpx.post(
+                f"{self.base_url}/api/embed",
+                json={"model": self.model, "input": texts},
+                timeout=self.timeout_seconds,
+            )
+            response.raise_for_status()
+            return response
+
+        response = retry_call(
+            request,
+            retry_exceptions=(httpx.TransportError, httpx.HTTPStatusError),
+            max_attempts=self.max_retries + 1,
+        )
+        embeddings = response.json().get("embeddings")
+        if not isinstance(embeddings, list) or len(embeddings) != len(texts):
+            raise RuntimeError("Ollama returned an invalid batch embedding response")
+        return [[float(value) for value in vector] for vector in embeddings]
