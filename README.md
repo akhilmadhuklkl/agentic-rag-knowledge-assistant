@@ -4,7 +4,7 @@ An AI assistant that searches trusted knowledge sources, verifies evidence, and 
 
 ## Project status
 
-Repository foundation only. Implementation will be added incrementally from document ingestion through retrieval, orchestration, verification, evaluation, and local operation. Deployment is intentionally out of scope for the current phase.
+Implementation will be added incrementally from document ingestion through retrieval, orchestration, verification, evaluation, and local operation. Deployment is intentionally out of scope for the current phase. See [docs/project-scope.md](docs/project-scope.md) for the agreed MVP boundaries.
 
 ## Planned capabilities
 
