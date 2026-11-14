@@ -8,6 +8,7 @@ def test_api_registers_product_routes_and_error_handlers() -> None:
     paths = {route.path for route in app.routes}
 
     assert "/health" in paths
+    assert "/metrics" in paths
     assert "/knowledge/ask" in paths
     assert "/knowledge/documents/upload" in paths
     assert ValueError in app.exception_handlers

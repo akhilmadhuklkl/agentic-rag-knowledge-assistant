@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from agentic_rag import __version__
 from agentic_rag.api.routes import router as knowledge_router
 from agentic_rag.config import get_settings
+from agentic_rag.metrics import metrics
 from agentic_rag.observability import (
     REQUEST_ID_HEADER,
     configure_logging,
@@ -54,6 +55,12 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
         return {"status": "ok", "environment": settings.app_env}
+
+    @app.get("/metrics", tags=["system"])
+    def application_metrics() -> dict[str, object]:
+        """Return local process metrics for development observability."""
+
+        return metrics.snapshot()
 
     return app
 

@@ -6,6 +6,7 @@ from time import perf_counter
 from agentic_rag.agents.models import PlanAction
 from agentic_rag.agents.orchestrator import AgentOrchestrator
 from agentic_rag.generation.service import Citation, GroundedAnswerService
+from agentic_rag.metrics import metrics
 from agentic_rag.observability import log_event
 from agentic_rag.verification.service import AnswerVerifier
 
@@ -54,6 +55,10 @@ class KnowledgeAssistantService:
             verified=verification.verified,
             duration_ms=duration_ms,
         )
+        metrics.increment("assistant_requests_total")
+        metrics.increment("assistant_refusals_total" if generated.refusal else "assistant_answers_total")
+        metrics.increment("assistant_verified_total" if verification.verified else "assistant_unverified_total")
+        metrics.observe("assistant_workflow_duration_ms", duration_ms)
         return AssistantResponse(
             answer=generated.answer,
             citations=generated.citations,

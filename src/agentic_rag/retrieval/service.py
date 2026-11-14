@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 
 from agentic_rag.ingestion.models import DocumentChunk
+from agentic_rag.metrics import metrics
 from agentic_rag.vectorstore.store import LocalVectorStore
 
 
@@ -46,6 +47,7 @@ class HybridRetrievalService:
             source_name=source_name,
             file_type=file_type,
         )
+        metrics.increment("retrieval_requests_total")
         query_tokens = self._tokens(query)
         results = [
             RetrievalResult(
@@ -57,11 +59,13 @@ class HybridRetrievalService:
             )
             for result in candidates
         ]
-        return [
+        ranked = [
             result
             for result in sorted(results, key=lambda result: result.score, reverse=True)
             if result.score > 0
         ][:top_k]
+        metrics.increment("retrieval_results_total", len(ranked))
+        return ranked
 
     @staticmethod
     def _tokens(text: str) -> set[str]:

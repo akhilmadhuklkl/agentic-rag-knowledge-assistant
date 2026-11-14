@@ -7,6 +7,7 @@ from pathlib import Path
 
 from agentic_rag.embeddings.local import LocalHashEmbeddingProvider
 from agentic_rag.ingestion.service import DocumentIngestionService
+from agentic_rag.metrics import metrics
 from agentic_rag.retrieval.service import HybridRetrievalService, RetrievalResult
 from agentic_rag.vectorstore.store import LocalVectorStore
 
@@ -45,12 +46,15 @@ class DocumentIndexingService:
         source_path = Path(path)
         fingerprint = self._fingerprint(source_path)
         if not force and self._manifest.get(str(source_path)) == fingerprint:
+            metrics.increment("documents_index_skipped_total")
             return IndexingSummary(1, 0, str(self.vector_store.path), skipped_count=1)
         chunks = self.ingestion_service.ingest_file(source_path)
         self.vector_store.delete_source(str(source_path))
         self.vector_store.add(chunks)
         self._manifest[str(source_path)] = fingerprint
         self._save_manifest()
+        metrics.increment("documents_indexed_total")
+        metrics.increment("chunks_indexed_total", len(chunks))
         return IndexingSummary(1, len(chunks), str(self.vector_store.path), indexed_count=1)
 
     def index_directory(self, directory: str | Path) -> IndexingSummary:
