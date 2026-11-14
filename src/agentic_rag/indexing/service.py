@@ -32,7 +32,7 @@ class DocumentIndexingService:
         self,
         vector_store_path: str | Path,
         ingestion_service: DocumentIngestionService | None = None,
-        embedding_provider: LocalHashEmbeddingProvider | None = None,
+        embedding_provider: Any | None = None,
         semantic_weight: float = 0.7,
         metadata_repository: Any | None = None,
     ) -> None:

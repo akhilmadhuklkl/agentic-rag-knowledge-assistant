@@ -57,6 +57,8 @@ Copy `.env.example` to `.env` when custom settings are needed:
 
 ```env
 LLM_PROVIDER=deterministic
+EMBEDDING_PROVIDER=local
+EMBEDDING_MODEL=nomic-embed-text
 LLM_MODEL=llama3.2
 LLM_BASE_URL=http://localhost:11434
 DATABASE_PATH=data/assistant.db
@@ -65,6 +67,10 @@ DOCUMENT_STORAGE_PATH=data/documents
 ```
 
 Set `LLM_PROVIDER=ollama` to use a locally running Ollama model.
+
+For model-backed retrieval, install and run Ollama, pull an embedding model such as
+`nomic-embed-text`, then set `EMBEDDING_PROVIDER=ollama` and re-index the documents.
+The default `local` provider remains available without any external service.
 
 ## Verification
 

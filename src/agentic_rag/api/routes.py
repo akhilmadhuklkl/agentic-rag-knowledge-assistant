@@ -25,6 +25,7 @@ from agentic_rag.api.schemas import (
 from agentic_rag.config import Settings, get_settings
 from agentic_rag.conversations.repository import SQLiteConversationRepository
 from agentic_rag.conversations.store import ConversationStore
+from agentic_rag.embeddings.providers import build_embedding_provider
 from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
@@ -44,6 +45,7 @@ def get_indexing_service(settings: Settings = Depends(get_settings)) -> Document
 
     return DocumentIndexingService(
         settings.vector_store_path,
+        embedding_provider=build_embedding_provider(settings),
         semantic_weight=settings.retrieval_semantic_weight,
         metadata_repository=document_repository,
     )

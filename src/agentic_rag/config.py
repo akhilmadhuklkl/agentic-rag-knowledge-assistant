@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     llm_model: str = "llama3.2"
     llm_base_url: str = "http://localhost:11434"
     embedding_provider: str = "local"
+    embedding_model: str = "nomic-embed-text"
     vector_store_path: str = "data/vectorstore"
     document_storage_path: str = "data/documents"
     conversation_store_path: str = "data/conversations.json"
