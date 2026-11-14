@@ -11,7 +11,9 @@ class Settings(BaseSettings):
     app_name: str = "Agentic RAG Knowledge Assistant"
     app_env: str = "development"
     log_level: str = "INFO"
-    llm_provider: str = "local"
+    llm_provider: str = "deterministic"
+    llm_model: str = "llama3.2"
+    llm_base_url: str = "http://localhost:11434"
     embedding_provider: str = "local"
     vector_store_path: str = "data/vectorstore"
     retrieval_semantic_weight: float = 0.7

@@ -13,6 +13,7 @@ from agentic_rag.api.schemas import (
     SearchResultResponse,
 )
 from agentic_rag.config import Settings, get_settings
+from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 
@@ -92,7 +93,9 @@ def answer(
         source_name=request.source_name,
         file_type=request.file_type,
     )
-    generated = GroundedAnswerService().generate(request.query, results)
+    generated = GroundedAnswerService(build_answer_model(get_settings())).generate(
+        request.query, results
+    )
     return AnswerResponse(
         answer=generated.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in generated.citations],
