@@ -20,6 +20,7 @@ from agentic_rag.api.schemas import (
     SearchResultResponse,
 )
 from agentic_rag.config import Settings, get_settings
+from agentic_rag.conversations.repository import SQLiteConversationRepository
 from agentic_rag.conversations.store import ConversationStore
 from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
@@ -28,7 +29,9 @@ from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
-conversation_store = ConversationStore(path=get_settings().conversation_store_path)
+conversation_store = ConversationStore(
+    repository=SQLiteConversationRepository(get_settings().database_path)
+)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
