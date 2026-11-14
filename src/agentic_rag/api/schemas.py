@@ -30,6 +30,8 @@ class IndexResponse(BaseModel):
     source_count: int
     chunk_count: int
     vector_store_path: str
+    indexed_count: int
+    skipped_count: int
 
 
 class SearchRequest(BaseModel):

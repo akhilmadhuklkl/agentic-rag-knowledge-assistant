@@ -9,6 +9,7 @@ RUNTIME = Path(__file__).parent / ".runtime"
 def test_indexing_service_connects_ingestion_and_vector_storage() -> None:
     store_path = RUNTIME / "indexing.json"
     store_path.unlink(missing_ok=True)
+    store_path.with_suffix(".manifest.json").unlink(missing_ok=True)
     service = DocumentIndexingService(store_path)
 
     summary = service.index_file(FIXTURES / "policy.md")
@@ -22,6 +23,7 @@ def test_indexing_service_connects_ingestion_and_vector_storage() -> None:
 def test_directory_indexing_is_repeatable() -> None:
     store_path = RUNTIME / "directory-indexing.json"
     store_path.unlink(missing_ok=True)
+    store_path.with_suffix(".manifest.json").unlink(missing_ok=True)
     service = DocumentIndexingService(store_path)
 
     first = service.index_directory(FIXTURES / "directory")
@@ -29,5 +31,6 @@ def test_directory_indexing_is_repeatable() -> None:
 
     assert first.source_count == 2
     assert first.chunk_count == 2
-    assert second.chunk_count == 2
+    assert second.chunk_count == 0
+    assert second.skipped_count == 2
     assert service.vector_store.count() == 2

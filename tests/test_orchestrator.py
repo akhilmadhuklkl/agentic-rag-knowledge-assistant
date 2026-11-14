@@ -11,6 +11,7 @@ RUNTIME = Path(__file__).parent / ".runtime"
 def build_orchestrator() -> AgentOrchestrator:
     store_path = RUNTIME / "orchestrator.json"
     store_path.unlink(missing_ok=True)
+    store_path.with_suffix(".manifest.json").unlink(missing_ok=True)
     service = DocumentIndexingService(store_path)
     service.index_file(FIXTURES / "policy.md")
     return AgentOrchestrator(service)

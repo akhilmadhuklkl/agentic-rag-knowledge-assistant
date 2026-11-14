@@ -56,10 +56,12 @@ def list_documents(
 async def upload_document(
     file: UploadFile = File(...),  # noqa: B008
     storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
 ) -> DocumentResponse:
     """Upload one supported document into local controlled storage."""
 
     document = storage.save(file.filename or "", await file.read())
+    indexing.index_file(document.path)
     return DocumentResponse(**document.__dict__)
 
 

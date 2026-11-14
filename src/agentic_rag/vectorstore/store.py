@@ -67,6 +67,16 @@ class LocalVectorStore:
 
         return len(self._records)
 
+    def delete_source(self, source_path: str) -> None:
+        """Remove all chunks belonging to one source before re-indexing it."""
+
+        retained = [
+            record for record in self._records if record["chunk"]["source_path"] != source_path
+        ]
+        if len(retained) != len(self._records):
+            self._records = retained
+            self._save()
+
     def _load(self) -> None:
         if self.path.is_file():
             self._records = json.loads(self.path.read_text(encoding="utf-8"))

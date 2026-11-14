@@ -11,6 +11,7 @@ RUNTIME = Path(__file__).parent / ".runtime"
 def test_index_file_route_returns_index_summary() -> None:
     store_path = RUNTIME / "api-indexing.json"
     store_path.unlink(missing_ok=True)
+    store_path.with_suffix(".manifest.json").unlink(missing_ok=True)
     service = DocumentIndexingService(store_path)
 
     response = index_file(IndexPathRequest(path=str(FIXTURES / "policy.md")), service)
@@ -22,6 +23,7 @@ def test_index_file_route_returns_index_summary() -> None:
 def test_search_route_returns_citation_ready_results() -> None:
     store_path = RUNTIME / "api-search.json"
     store_path.unlink(missing_ok=True)
+    store_path.with_suffix(".manifest.json").unlink(missing_ok=True)
     service = DocumentIndexingService(store_path)
     service.index_file(FIXTURES / "policy.md")
 
@@ -36,6 +38,7 @@ def test_search_route_returns_citation_ready_results() -> None:
 def test_search_route_accepts_source_filters() -> None:
     store_path = RUNTIME / "api-filter.json"
     store_path.unlink(missing_ok=True)
+    store_path.with_suffix(".manifest.json").unlink(missing_ok=True)
     service = DocumentIndexingService(store_path)
     service.index_directory(FIXTURES / "directory")
 
