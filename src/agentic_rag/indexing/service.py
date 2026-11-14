@@ -5,6 +5,7 @@ from pathlib import Path
 
 from agentic_rag.embeddings.local import LocalHashEmbeddingProvider
 from agentic_rag.ingestion.service import DocumentIngestionService
+from agentic_rag.retrieval.service import HybridRetrievalService, RetrievalResult
 from agentic_rag.vectorstore.store import LocalVectorStore
 
 
@@ -50,3 +51,8 @@ class DocumentIndexingService:
         )
         self.vector_store.add(chunks)
         return IndexingSummary(source_count, len(chunks), str(self.vector_store.path))
+
+    def search(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
+        """Search indexed content through the hybrid retrieval layer."""
+
+        return HybridRetrievalService(self.vector_store).search(query, top_k)

@@ -50,7 +50,7 @@ def search(
 ) -> SearchResponse:
     """Search the indexed knowledge base and return citation metadata."""
 
-    results = service.vector_store.search(request.query, request.top_k)
+    results = service.search(request.query, request.top_k)
     return SearchResponse(
         results=[
             SearchResultResponse(
