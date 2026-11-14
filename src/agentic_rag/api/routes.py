@@ -1,6 +1,6 @@
 """Knowledge-base API routes."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from agentic_rag.agents.orchestrator import AgentOrchestrator
 from agentic_rag.api.schemas import (
@@ -8,6 +8,8 @@ from agentic_rag.api.schemas import (
     AnswerResponse,
     AskResponse,
     CitationResponse,
+    DocumentListResponse,
+    DocumentResponse,
     IndexPathRequest,
     IndexResponse,
     SearchRequest,
@@ -18,6 +20,7 @@ from agentic_rag.config import Settings, get_settings
 from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
+from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -30,6 +33,34 @@ def get_indexing_service(settings: Settings = Depends(get_settings)) -> Document
         settings.vector_store_path,
         semantic_weight=settings.retrieval_semantic_weight,
     )
+
+
+def get_document_storage(settings: Settings = Depends(get_settings)) -> DocumentStorageService:  # noqa: B008
+    """Build the controlled local document storage service."""
+
+    return DocumentStorageService(settings.document_storage_path)
+
+
+@router.get("/documents", response_model=DocumentListResponse)
+def list_documents(
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+) -> DocumentListResponse:
+    """List supported documents currently stored locally."""
+
+    return DocumentListResponse(
+        documents=[DocumentResponse(**document.__dict__) for document in storage.list_documents()]
+    )
+
+
+@router.post("/documents/upload", response_model=DocumentResponse)
+async def upload_document(
+    file: UploadFile = File(...),  # noqa: B008
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+) -> DocumentResponse:
+    """Upload one supported document into local controlled storage."""
+
+    document = storage.save(file.filename or "", await file.read())
+    return DocumentResponse(**document.__dict__)
 
 
 @router.post("/index/file", response_model=IndexResponse)

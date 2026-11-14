@@ -18,6 +18,20 @@ class AssistantApiClient:
         response.raise_for_status()
         return response.json()
 
+    def upload_document(self, filename: str, content: bytes) -> dict:
+        response = httpx.post(
+            f"{self.base_url}/knowledge/documents/upload",
+            files={"file": (filename, content)},
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def list_documents(self) -> dict:
+        response = httpx.get(f"{self.base_url}/knowledge/documents", timeout=30)
+        response.raise_for_status()
+        return response.json()
+
     def ask(self, question: str, top_k: int = 5) -> dict:
         response = httpx.post(
             f"{self.base_url}/knowledge/ask",

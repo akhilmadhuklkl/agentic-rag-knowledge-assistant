@@ -9,6 +9,21 @@ class IndexPathRequest(BaseModel):
     path: str = Field(min_length=1)
 
 
+class DocumentResponse(BaseModel):
+    """Stored document metadata."""
+
+    name: str
+    path: str
+    size_bytes: int
+    file_type: str
+
+
+class DocumentListResponse(BaseModel):
+    """Available stored documents."""
+
+    documents: list[DocumentResponse]
+
+
 class IndexResponse(BaseModel):
     """Summary returned after indexing."""
 

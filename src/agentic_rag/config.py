@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:11434"
     embedding_provider: str = "local"
     vector_store_path: str = "data/vectorstore"
+    document_storage_path: str = "data/documents"
     retrieval_semantic_weight: float = 0.7
     default_top_k: int = 5
     max_top_k: int = 50

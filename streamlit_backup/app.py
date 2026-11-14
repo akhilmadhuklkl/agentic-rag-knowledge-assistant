@@ -18,6 +18,13 @@ client = AssistantApiClient(os.getenv("ASSISTANT_API_URL", "http://localhost:800
 
 with st.sidebar:
     st.header("Knowledge base")
+    uploaded_file = st.file_uploader("Upload document", type=["pdf", "md", "markdown", "txt"])
+    if uploaded_file is not None and st.button("Save uploaded document"):
+        try:
+            saved = client.upload_document(uploaded_file.name, uploaded_file.getvalue())
+            st.success(f"Saved {saved['name']}")
+        except Exception as error:  # pragma: no cover - UI error display  # noqa: BLE001
+            st.error(f"Upload failed: {error}")
     directory = st.text_input("Local documents directory", value="data/documents")
     if st.button("Index documents"):
         try:
