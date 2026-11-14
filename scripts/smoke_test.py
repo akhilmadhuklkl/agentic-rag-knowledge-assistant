@@ -4,11 +4,12 @@ Usage:
     python scripts/smoke_test.py
 """
 
+import os
 from pathlib import Path
 
 import httpx
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.getenv("ASSISTANT_API_URL", "http://127.0.0.1:8000")
 FIXTURE = Path(__file__).parents[1] / "tests" / "fixtures" / "policy.md"
 
 
