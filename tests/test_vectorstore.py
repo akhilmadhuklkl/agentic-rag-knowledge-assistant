@@ -37,3 +37,24 @@ def test_vector_store_upserts_same_chunk_id() -> None:
     store.add(chunks)
 
     assert store.count() == len(chunks)
+
+
+def test_vector_store_rejects_a_different_embedding_provider(tmp_path: Path) -> None:
+    store_path = tmp_path / "vectors.json"
+    LocalVectorStore(store_path, LocalHashEmbeddingProvider()).add([])
+
+    class DifferentProvider:
+        provider_id = "different-provider"
+
+        def embed(self, text: str) -> list[float]:
+            return [1.0]
+
+        def embed_many(self, texts: list[str]) -> list[list[float]]:
+            return [[1.0] for _ in texts]
+
+    try:
+        LocalVectorStore(store_path, DifferentProvider())
+    except ValueError as error:
+        assert "re-index" in str(error)
+    else:
+        raise AssertionError("Expected incompatible embedding provider to be rejected")

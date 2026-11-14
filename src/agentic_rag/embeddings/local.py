@@ -17,6 +17,12 @@ class LocalHashEmbeddingProvider:
             raise ValueError("dimensions must be positive")
         self.dimensions = dimensions
 
+    @property
+    def provider_id(self) -> str:
+        """Stable identifier stored with vector indexes."""
+
+        return f"local-hash-v1:{self.dimensions}"
+
     def embed(self, text: str) -> list[float]:
         """Create a normalized vector for one text value."""
 

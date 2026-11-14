@@ -23,6 +23,8 @@ class LocalVectorStore:
     def __init__(self, path: str | Path, embedding_provider: LocalHashEmbeddingProvider) -> None:
         self.path = Path(path)
         self.embedding_provider = embedding_provider
+        self.metadata_path = self.path.with_suffix(".meta.json")
+        self.provider_id = getattr(embedding_provider, "provider_id", type(embedding_provider).__name__)
         self._records: list[dict[str, object]] = []
         self._load()
 
@@ -85,10 +87,20 @@ class LocalVectorStore:
     def _load(self) -> None:
         if self.path.is_file():
             self._records = json.loads(self.path.read_text(encoding="utf-8"))
+        if self.metadata_path.is_file():
+            metadata = json.loads(self.metadata_path.read_text(encoding="utf-8"))
+            if metadata.get("provider_id") != self.provider_id:
+                raise ValueError(
+                    "embedding provider does not match the existing vector index; "
+                    "re-index documents before switching providers"
+                )
 
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(self._records, indent=2), encoding="utf-8")
+        self.metadata_path.write_text(
+            json.dumps({"provider_id": self.provider_id}, indent=2), encoding="utf-8"
+        )
 
     @staticmethod
     def _cosine(left: list[float], right: list[float]) -> float:

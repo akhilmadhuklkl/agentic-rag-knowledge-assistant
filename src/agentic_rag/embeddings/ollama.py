@@ -20,6 +20,12 @@ class OllamaEmbeddingProvider:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
 
+    @property
+    def provider_id(self) -> str:
+        """Stable identifier stored with vector indexes."""
+
+        return f"ollama:{self.model}"
+
     def embed(self, text: str) -> list[float]:
         """Create one embedding vector."""
 
