@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from agentic_rag.generation.models import AnswerModel
 from agentic_rag.retrieval.service import RetrievalResult
+from agentic_rag.security.prompt import evidence_block, validate_question
 
 
 @dataclass(frozen=True)
@@ -35,8 +36,7 @@ class GroundedAnswerService:
     def generate(self, question: str, results: list[RetrievalResult]) -> GroundedAnswer:
         """Generate an answer without adding facts absent from the evidence."""
 
-        if not question.strip():
-            raise ValueError("question must not be empty")
+        question = validate_question(question)
         if not results:
             return GroundedAnswer(
                 answer=(
@@ -58,7 +58,7 @@ class GroundedAnswerService:
             for index, result in enumerate(results, start=1)
         ]
         evidence_lines = [
-            f"[{citation.citation_id}] {result.chunk.text.strip()}"
+            f"[{citation.citation_id}] {evidence_block(result.chunk.text)}"
             for citation, result in zip(citations, results, strict=True)
         ]
         answer = "Based on the indexed sources:\n" + "\n".join(evidence_lines)

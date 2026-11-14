@@ -38,7 +38,10 @@ def get_indexing_service(settings: Settings = Depends(get_settings)) -> Document
 def get_document_storage(settings: Settings = Depends(get_settings)) -> DocumentStorageService:  # noqa: B008
     """Build the controlled local document storage service."""
 
-    return DocumentStorageService(settings.document_storage_path)
+    return DocumentStorageService(
+        settings.document_storage_path,
+        max_size_bytes=settings.max_upload_size_bytes,
+    )
 
 
 @router.get("/documents", response_model=DocumentListResponse)

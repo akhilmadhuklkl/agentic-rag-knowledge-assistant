@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class IndexPathRequest(BaseModel):
     """Request to index a local file or directory path."""
 
-    path: str = Field(min_length=1)
+    path: str = Field(min_length=1, max_length=1000)
 
 
 class DocumentResponse(BaseModel):
@@ -37,7 +37,7 @@ class IndexResponse(BaseModel):
 class SearchRequest(BaseModel):
     """Search request for the indexed knowledge base."""
 
-    query: str = Field(min_length=1)
+    query: str = Field(min_length=1, max_length=2000)
     top_k: int = Field(default=5, ge=1, le=50)
     source_name: str | None = Field(default=None, min_length=1)
     file_type: str | None = Field(default=None, min_length=1)
