@@ -17,7 +17,10 @@ def test_primary_ui_assets_exist_and_are_mounted() -> None:
     styles = (root / "frontend" / "styles.css").read_text(encoding="utf-8")
     assert 'id="file-upload"' in html
     assert 'id="load-sources"' in html
+    assert 'id="new-conversation"' in html
     assert "/knowledge/documents/upload" in javascript
+    assert "conversation_id" in javascript
+    assert "/knowledge/conversations" in javascript
     assert "MINIMUM_RESPONSE_LOADER_MS" in javascript
     assert "waitForMinimumLoaderTime" in javascript
     assert "animateAnswer" in javascript
