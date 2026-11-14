@@ -3,6 +3,7 @@
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from agentic_rag.ingestion.service import SUPPORTED_EXTENSIONS
 
@@ -20,11 +21,12 @@ class StoredDocument:
 class DocumentStorageService:
     """Store and list documents under one controlled root directory."""
 
-    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000) -> None:
+    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000, repository: Any | None = None) -> None:
         if max_size_bytes <= 0:
             raise ValueError("max_size_bytes must be positive")
         self.root = Path(root)
         self.max_size_bytes = max_size_bytes
+        self.repository = repository
         self.root.mkdir(parents=True, exist_ok=True)
 
     def save(self, filename: str, content: bytes) -> StoredDocument:
@@ -41,11 +43,16 @@ class DocumentStorageService:
 
         destination = self.root / safe_name
         destination.write_bytes(content)
-        return self._metadata(destination)
+        document = self._metadata(destination)
+        if self.repository:
+            self.repository.upsert_document(document)
+        return document
 
     def list_documents(self) -> list[StoredDocument]:
         """Return supported documents in stable filename order."""
 
+        if self.repository:
+            return self.repository.list_documents()
         return [
             self._metadata(path)
             for path in sorted(self.root.iterdir())

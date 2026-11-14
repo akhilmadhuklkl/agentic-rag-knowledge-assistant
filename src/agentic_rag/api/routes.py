@@ -26,12 +26,14 @@ from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 from agentic_rag.storage.documents import DocumentStorageService
+from agentic_rag.storage.repository import SQLiteDocumentRepository
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 conversation_store = ConversationStore(
     repository=SQLiteConversationRepository(get_settings().database_path)
 )
+document_repository = SQLiteDocumentRepository(get_settings().database_path)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
@@ -40,6 +42,7 @@ def get_indexing_service(settings: Settings = Depends(get_settings)) -> Document
     return DocumentIndexingService(
         settings.vector_store_path,
         semantic_weight=settings.retrieval_semantic_weight,
+        metadata_repository=document_repository,
     )
 
 
@@ -49,6 +52,7 @@ def get_document_storage(settings: Settings = Depends(get_settings)) -> Document
     return DocumentStorageService(
         settings.document_storage_path,
         max_size_bytes=settings.max_upload_size_bytes,
+        repository=document_repository,
     )
 
 

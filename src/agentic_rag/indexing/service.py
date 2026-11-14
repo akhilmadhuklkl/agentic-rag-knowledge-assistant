@@ -4,6 +4,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from agentic_rag.embeddings.local import LocalHashEmbeddingProvider
 from agentic_rag.ingestion.service import DocumentIngestionService
@@ -32,11 +33,13 @@ class DocumentIndexingService:
         ingestion_service: DocumentIngestionService | None = None,
         embedding_provider: LocalHashEmbeddingProvider | None = None,
         semantic_weight: float = 0.7,
+        metadata_repository: Any | None = None,
     ) -> None:
         self.ingestion_service = ingestion_service or DocumentIngestionService()
         self.embedding_provider = embedding_provider or LocalHashEmbeddingProvider()
         self.vector_store = LocalVectorStore(vector_store_path, self.embedding_provider)
         self.semantic_weight = semantic_weight
+        self.metadata_repository = metadata_repository
         self.manifest_path = Path(vector_store_path).with_suffix(".manifest.json")
         self._manifest = self._load_manifest()
 
@@ -45,14 +48,22 @@ class DocumentIndexingService:
 
         source_path = Path(path)
         fingerprint = self._fingerprint(source_path)
-        if not force and self._manifest.get(str(source_path)) == fingerprint:
+        known_fingerprint = (
+            self.metadata_repository.get_fingerprint(str(source_path))
+            if self.metadata_repository
+            else self._manifest.get(str(source_path))
+        )
+        if not force and known_fingerprint == fingerprint:
             metrics.increment("documents_index_skipped_total")
             return IndexingSummary(1, 0, str(self.vector_store.path), skipped_count=1)
         chunks = self.ingestion_service.ingest_file(source_path)
         self.vector_store.delete_source(str(source_path))
         self.vector_store.add(chunks)
-        self._manifest[str(source_path)] = fingerprint
-        self._save_manifest()
+        if self.metadata_repository:
+            self.metadata_repository.set_fingerprint(str(source_path), fingerprint)
+        else:
+            self._manifest[str(source_path)] = fingerprint
+            self._save_manifest()
         metrics.increment("documents_indexed_total")
         metrics.increment("chunks_indexed_total", len(chunks))
         return IndexingSummary(1, len(chunks), str(self.vector_store.path), indexed_count=1)
