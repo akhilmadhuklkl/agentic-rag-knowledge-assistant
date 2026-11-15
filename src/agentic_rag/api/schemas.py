@@ -176,6 +176,8 @@ class AnswerResponse(BaseModel):
     citations: list[CitationResponse]
     grounded: bool
     refusal: bool
+    confidence_warning: bool = False
+    confidence_warning_message: str | None = None
 
 
 class AskResponse(AnswerResponse):

@@ -332,11 +332,14 @@ def answer(
     generated = GroundedAnswerService(build_answer_model(get_settings())).generate(
         request.query, results
     )
+    confidence_warning = bool(generated.citations) and min(citation.confidence for citation in generated.citations) < 0.4
     return AnswerResponse(
         answer=generated.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in generated.citations],
         grounded=generated.grounded,
         refusal=generated.refusal,
+        confidence_warning=confidence_warning,
+        confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
     )
 
 
@@ -357,6 +360,7 @@ def ask(
     )
     response = assistant.ask(contextual_query, top_k=request.top_k)
     conversation_store.append(conversation_id, request.query, response.answer)
+    confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < 0.4
     return AskResponse(
         answer=response.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in response.citations],
@@ -368,6 +372,8 @@ def ask(
         attempts=response.attempts,
         duration_ms=response.duration_ms,
         conversation_id=conversation_id,
+        confidence_warning=confidence_warning,
+        confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
     )
 
 
