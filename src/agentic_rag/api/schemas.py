@@ -26,6 +26,16 @@ class DocumentListResponse(BaseModel):
     documents: list[DocumentResponse]
 
 
+class KnowledgeBaseHealthResponse(BaseModel):
+    """Summary of document and index readiness."""
+
+    document_count: int
+    indexed_document_count: int
+    chunk_count: int
+    stale_document_count: int
+    status: Literal["ready", "needs_reindex", "empty"]
+
+
 class CleanupResponse(BaseModel):
     removed_sources: int
 

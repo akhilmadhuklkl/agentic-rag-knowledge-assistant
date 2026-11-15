@@ -1,5 +1,6 @@
 """Knowledge-base API routes."""
 
+import hashlib
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -23,6 +24,7 @@ from agentic_rag.api.schemas import (
     FeedbackRequest,
     IndexPathRequest,
     IndexResponse,
+    KnowledgeBaseHealthResponse,
     SearchRequest,
     SearchResponse,
     SearchResultResponse,
@@ -82,6 +84,30 @@ def list_documents(
 
     return DocumentListResponse(
         documents=[DocumentResponse(**document.__dict__) for document in storage.list_documents()]
+    )
+
+
+@router.get("/documents/health", response_model=KnowledgeBaseHealthResponse)
+def knowledge_base_health(
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> KnowledgeBaseHealthResponse:
+    """Report whether stored documents are represented in the current index."""
+
+    documents = document_repository.list_documents()
+    indexed_paths = service.vector_store.source_paths()
+    stale = 0
+    for document in documents:
+        path = Path(document.path)
+        fingerprint = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+        if fingerprint != document_repository.get_fingerprint(document.path) or document.path not in indexed_paths:
+            stale += 1
+    status = "empty" if not documents else "needs_reindex" if stale else "ready"
+    return KnowledgeBaseHealthResponse(
+        document_count=len(documents),
+        indexed_document_count=len(indexed_paths),
+        chunk_count=service.vector_store.count(),
+        stale_document_count=stale,
+        status=status,
     )
 
 
