@@ -58,3 +58,18 @@ def test_vector_store_rejects_a_different_embedding_provider(tmp_path: Path) -> 
         assert "re-index" in str(error)
     else:
         raise AssertionError("Expected incompatible embedding provider to be rejected")
+
+
+def test_vector_store_updates_source_metadata() -> None:
+    fixture = Path(__file__).parent / "fixtures" / "policy.md"
+    chunks = DocumentIngestionService().ingest_file(fixture)
+    store_path = RUNTIME / "vectors-metadata.json"
+    store_path.unlink(missing_ok=True)
+    store = LocalVectorStore(store_path, LocalHashEmbeddingProvider())
+    store.add(chunks)
+
+    store.update_source_metadata(str(fixture), "authoritative", "current")
+
+    result = store.search("refund", top_k=1)[0].chunk
+    assert result.authority == "authoritative"
+    assert result.freshness == "current"

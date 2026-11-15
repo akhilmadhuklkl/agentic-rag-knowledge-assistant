@@ -79,6 +79,19 @@ class LocalVectorStore:
             self._records = retained
             self._save()
 
+    def update_source_metadata(self, source_path: str, authority: str, freshness: str) -> None:
+        """Update structured labels on all chunks belonging to one source."""
+
+        changed = False
+        for record in self._records:
+            chunk = record["chunk"]
+            if chunk["source_path"] == source_path:
+                chunk["authority"] = authority
+                chunk["freshness"] = freshness
+                changed = True
+        if changed:
+            self._save()
+
     def source_paths(self) -> set[str]:
         """Return source paths represented in the vector store."""
 

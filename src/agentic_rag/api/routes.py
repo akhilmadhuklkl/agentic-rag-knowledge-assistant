@@ -239,6 +239,7 @@ def update_document_metadata(
     name: str,
     request: DocumentMetadataUpdate,
     storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
 ) -> DocumentResponse:
     """Update labels used to prioritize and filter a document."""
 
@@ -246,6 +247,8 @@ def update_document_metadata(
     if document is None:
         raise FileNotFoundError(name)
     document_repository.update_metadata(name, request.authority, request.freshness)
+    indexing.reindex_file(document.path)
+    indexing.vector_store.update_source_metadata(document.path, request.authority, request.freshness)
     updated = StoredDocument(document.name, document.path, document.size_bytes, document.file_type, request.authority, request.freshness)
     ingestion_repository.record("metadata_updated", name, f"Authority={request.authority}; freshness={request.freshness}")
     return DocumentResponse(**updated.__dict__)
