@@ -104,6 +104,7 @@ class AnswerRequest(SearchRequest):
 
     conversation_id: str | None = Field(default=None, max_length=64)
     confidence_threshold: float | None = Field(default=None, ge=0, le=1)
+    latency_profile: Literal["local", "balanced", "strict"] = "balanced"
 
 
 class FeedbackRequest(BaseModel):

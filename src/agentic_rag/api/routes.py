@@ -66,6 +66,12 @@ def _search_mode_weight(mode: str, hybrid_weight: float) -> float:
     return {"semantic": 1.0, "keyword": 0.0}.get(mode, hybrid_weight)
 
 
+def _latency_target(profile: str, default: float) -> float:
+    """Translate a performance profile into a warning target."""
+
+    return {"local": default * 1.5, "strict": default * 0.6}.get(profile, default)
+
+
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
     """Build the application service from runtime configuration."""
 
@@ -375,7 +381,8 @@ def ask(
     conversation_store.append(conversation_id, request.query, response.answer)
     threshold = request.confidence_threshold if request.confidence_threshold is not None else settings.confidence_warning_threshold
     confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < threshold
-    latency_warning = response.duration_ms >= settings.response_latency_warning_ms
+    latency_target = _latency_target(request.latency_profile, settings.response_latency_warning_ms)
+    latency_warning = response.duration_ms >= latency_target
     return AskResponse(
         answer=response.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in response.citations],
@@ -391,7 +398,7 @@ def ask(
         confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
         retrieval_diagnostics={"query": contextual_query, "search_mode": request.search_mode, "top_k": request.top_k, "file_type": request.file_type or "all"},
         latency_warning=latency_warning,
-        latency_warning_message=f"This response took {response.duration_ms} ms, above the {settings.response_latency_warning_ms:.0f} ms target." if latency_warning else None,
+        latency_warning_message=f"This response took {response.duration_ms} ms, above the {latency_target:.0f} ms {request.latency_profile} target." if latency_warning else None,
         agent_trace=[
             {"stage": "Planning", "status": "completed", "detail": response.action.value},
             {"stage": "Retrieval", "status": "completed" if response.citations else "no_evidence", "detail": f"{len(response.citations)} source(s), {response.attempts} attempt(s), {response.stage_timings['retrieval']} ms"},
