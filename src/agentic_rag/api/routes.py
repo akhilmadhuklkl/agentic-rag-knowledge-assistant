@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from agentic_rag.agents.orchestrator import AgentOrchestrator
@@ -215,14 +215,23 @@ def download_document(
 @router.get("/documents/{name}/preview")
 def preview_document(
     name: str,
+    page: int = Query(default=1, ge=1, description="1-based PDF page number"),
     storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
 ) -> PlainTextResponse:
-    """Return a safe text preview for Markdown and text documents."""
+    """Return a safe text preview, including a selected PDF page."""
 
     path = _stored_document_path(name, storage)
-    if path.suffix.lower() not in {".md", ".markdown", ".txt"}:
-        raise ValueError("Preview is available for Markdown and text documents; download the PDF to view it.")
-    return PlainTextResponse(path.read_text(encoding="utf-8"))
+    if path.suffix.lower() in {".md", ".markdown", ".txt"}:
+        return PlainTextResponse(path.read_text(encoding="utf-8"))
+    if path.suffix.lower() == ".pdf":
+        from pypdf import PdfReader
+
+        reader = PdfReader(str(path))
+        if page > len(reader.pages):
+            raise ValueError(f"PDF has {len(reader.pages)} page(s); page {page} does not exist")
+        text = reader.pages[page - 1].extract_text() or ""
+        return PlainTextResponse(text, headers={"X-Preview-Page": str(page)})
+    raise ValueError("Preview is available for supported document types only.")
 
 
 @router.post("/index/file", response_model=IndexResponse)
