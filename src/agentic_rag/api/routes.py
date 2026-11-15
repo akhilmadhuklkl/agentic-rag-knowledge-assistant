@@ -342,6 +342,7 @@ def answer(
     )
     threshold = request.confidence_threshold if request.confidence_threshold is not None else get_settings().confidence_warning_threshold
     confidence_warning = bool(generated.citations) and min(citation.confidence for citation in generated.citations) < threshold
+    latency_warning = False
     return AnswerResponse(
         answer=generated.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in generated.citations],
@@ -350,6 +351,7 @@ def answer(
         confidence_warning=confidence_warning,
         confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
         retrieval_diagnostics={"query": request.query, "search_mode": request.search_mode, "top_k": request.top_k, "file_type": request.file_type or "all"},
+        latency_warning=latency_warning,
     )
 
 
@@ -373,6 +375,7 @@ def ask(
     conversation_store.append(conversation_id, request.query, response.answer)
     threshold = request.confidence_threshold if request.confidence_threshold is not None else settings.confidence_warning_threshold
     confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < threshold
+    latency_warning = response.duration_ms >= settings.response_latency_warning_ms
     return AskResponse(
         answer=response.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in response.citations],
@@ -387,6 +390,8 @@ def ask(
         confidence_warning=confidence_warning,
         confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
         retrieval_diagnostics={"query": contextual_query, "search_mode": request.search_mode, "top_k": request.top_k, "file_type": request.file_type or "all"},
+        latency_warning=latency_warning,
+        latency_warning_message=f"This response took {response.duration_ms} ms, above the {settings.response_latency_warning_ms:.0f} ms target." if latency_warning else None,
         agent_trace=[
             {"stage": "Planning", "status": "completed", "detail": response.action.value},
             {"stage": "Retrieval", "status": "completed" if response.citations else "no_evidence", "detail": f"{len(response.citations)} source(s), {response.attempts} attempt(s), {response.stage_timings['retrieval']} ms"},
