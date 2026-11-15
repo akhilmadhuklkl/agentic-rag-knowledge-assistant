@@ -36,6 +36,10 @@ class SQLiteDocumentRepository:
             rows = connection.execute("SELECT name, path, size_bytes, file_type, authority, freshness FROM documents ORDER BY name").fetchall()
         return [StoredDocument(*row) for row in rows]
 
+    def update_metadata(self, name: str, authority: str, freshness: str) -> None:
+        with self._connect() as connection:
+            connection.execute("UPDATE documents SET authority = ?, freshness = ? WHERE name = ?", (authority, freshness, name))
+
     def get_fingerprint(self, source_path: str) -> str | None:
         with self._connect() as connection:
             row = connection.execute("SELECT fingerprint FROM index_manifest WHERE source_path = ?", (source_path,)).fetchone()

@@ -24,6 +24,13 @@ class DocumentResponse(BaseModel):
     upload_date: str | None = None
 
 
+class DocumentMetadataUpdate(BaseModel):
+    """Editable authority and freshness labels for a stored document."""
+
+    authority: Literal["authoritative", "standard", "legacy"]
+    freshness: Literal["current", "historical", "unspecified"]
+
+
 class DocumentListResponse(BaseModel):
     """Available stored documents."""
 

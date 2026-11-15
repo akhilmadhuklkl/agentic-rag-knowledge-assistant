@@ -20,6 +20,7 @@ from agentic_rag.api.schemas import (
     ConversationResponse,
     ConversationTurnResponse,
     DocumentListResponse,
+    DocumentMetadataUpdate,
     DocumentResponse,
     EvaluationHistoryResponse,
     EvaluationReportResponse,
@@ -49,7 +50,7 @@ from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 from agentic_rag.metrics import metrics
 from agentic_rag.observability import log_event
-from agentic_rag.storage.documents import DocumentStorageService
+from agentic_rag.storage.documents import DocumentStorageService, StoredDocument
 from agentic_rag.storage.repository import (
     SQLiteDocumentRepository,
     SQLiteEvaluationRepository,
@@ -231,6 +232,23 @@ def delete_document(
     indexing.vector_store.delete_source(document.path)
     ingestion_repository.record("deleted", document.name, "Removed document and indexed knowledge")
     return DocumentResponse(**document.__dict__)
+
+
+@router.patch("/documents/{name}/metadata", response_model=DocumentResponse)
+def update_document_metadata(
+    name: str,
+    request: DocumentMetadataUpdate,
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+) -> DocumentResponse:
+    """Update labels used to prioritize and filter a document."""
+
+    document = next((item for item in document_repository.list_documents() if item.name == name), None)
+    if document is None:
+        raise FileNotFoundError(name)
+    document_repository.update_metadata(name, request.authority, request.freshness)
+    updated = StoredDocument(document.name, document.path, document.size_bytes, document.file_type, request.authority, request.freshness)
+    ingestion_repository.record("metadata_updated", name, f"Authority={request.authority}; freshness={request.freshness}")
+    return DocumentResponse(**updated.__dict__)
 
 
 def _stored_document_path(name: str, storage: DocumentStorageService) -> Path:
