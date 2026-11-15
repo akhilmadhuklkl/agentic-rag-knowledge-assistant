@@ -150,3 +150,26 @@ class SQLiteIngestionRepository:
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)
+
+
+class SQLiteLatencyRepository:
+    """Persist recent assistant response durations for local trend views."""
+
+    def __init__(self, path: str | Path = "data/assistant.db") -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.execute("CREATE TABLE IF NOT EXISTS latency_history (id INTEGER PRIMARY KEY AUTOINCREMENT, duration_ms REAL NOT NULL, profile TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+
+    def record(self, duration_ms: float, profile: str) -> None:
+        with self._connect() as connection:
+            connection.execute("INSERT INTO latency_history (duration_ms, profile) VALUES (?, ?)", (duration_ms, profile))
+
+    def recent(self, limit: int = 20) -> list[dict[str, object]]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT duration_ms, profile, created_at FROM latency_history ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        keys = ("duration_ms", "profile", "created_at")
+        return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def _connect(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.path)

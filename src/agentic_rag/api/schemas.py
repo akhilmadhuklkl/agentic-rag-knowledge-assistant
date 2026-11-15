@@ -57,6 +57,12 @@ class IngestionActivityResponse(BaseModel):
     created_at: str
 
 
+class LatencyHistoryResponse(BaseModel):
+    duration_ms: float
+    profile: str
+    created_at: str
+
+
 class CleanupResponse(BaseModel):
     removed_sources: int
 

@@ -27,6 +27,7 @@ from agentic_rag.api.schemas import (
     IndexResponse,
     IngestionActivityResponse,
     KnowledgeBaseHealthResponse,
+    LatencyHistoryResponse,
     ReindexStaleResponse,
     SearchRequest,
     SearchResponse,
@@ -47,6 +48,7 @@ from agentic_rag.storage.repository import (
     SQLiteEvaluationRepository,
     SQLiteFeedbackRepository,
     SQLiteIngestionRepository,
+    SQLiteLatencyRepository,
 )
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
@@ -58,6 +60,7 @@ document_repository = SQLiteDocumentRepository(get_settings().database_path)
 feedback_repository = SQLiteFeedbackRepository(get_settings().database_path)
 evaluation_repository = SQLiteEvaluationRepository(get_settings().database_path)
 ingestion_repository = SQLiteIngestionRepository(get_settings().database_path)
+latency_repository = SQLiteLatencyRepository(get_settings().database_path)
 
 
 def _search_mode_weight(mode: str, hybrid_weight: float) -> float:
@@ -378,6 +381,7 @@ def ask(
     )
     semantic_weight = _search_mode_weight(request.search_mode, settings.retrieval_semantic_weight)
     response = assistant.ask(contextual_query, top_k=request.top_k, semantic_weight=semantic_weight, file_type=request.file_type)
+    latency_repository.record(response.duration_ms, request.latency_profile)
     conversation_store.append(conversation_id, request.query, response.answer)
     threshold = request.confidence_threshold if request.confidence_threshold is not None else settings.confidence_warning_threshold
     confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < threshold
@@ -406,6 +410,13 @@ def ask(
             {"stage": "Verification", "status": "completed" if response.verified else "review", "detail": f"{response.verification_reason} · {response.stage_timings['verification']} ms"},
         ],
     )
+
+
+@router.get("/metrics/latency-history", response_model=list[LatencyHistoryResponse])
+def latency_history() -> list[LatencyHistoryResponse]:
+    """Return recent response timing samples."""
+
+    return [LatencyHistoryResponse(**sample) for sample in latency_repository.recent()]
 
 
 @router.post("/feedback")
