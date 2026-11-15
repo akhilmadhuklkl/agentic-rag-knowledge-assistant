@@ -35,6 +35,27 @@
     "expected_refusal": false
   },
   {
+    "question": "How quickly does standard support respond?",
+    "category": "support",
+    "expected_source": "support_policy.md",
+    "expected_answer_keywords": ["support", "two|2", "business days"],
+    "expected_refusal": false
+  },
+  {
+    "question": "How should urgent security incidents be reported?",
+    "category": "support",
+    "expected_source": "support_policy.md",
+    "expected_answer_keywords": ["urgent", "security", "email"],
+    "expected_refusal": false
+  },
+  {
+    "question": "What information should a support request include?",
+    "category": "support",
+    "expected_source": "support_policy.md",
+    "expected_answer_keywords": ["service", "description", "issue started"],
+    "expected_refusal": false
+  },
+  {
     "question": "What is the interplanetary asteroid evacuation procedure?",
     "category": "refusal",
     "expected_refusal": true
