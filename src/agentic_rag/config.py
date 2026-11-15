@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     confidence_warning_threshold: float = 0.4
     response_latency_warning_ms: float = 10_000
     evaluation_regression_threshold: float = 0.8
+    evaluation_retrieval_threshold: float = 0.6
+    evaluation_citation_threshold: float = 0.6
     default_top_k: int = 5
     max_top_k: int = 50
     api_key: str | None = None
