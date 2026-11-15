@@ -18,6 +18,7 @@ class DocumentResponse(BaseModel):
     path: str
     size_bytes: int
     file_type: str
+    status: Literal["indexed", "stale", "missing", "unknown"] = "unknown"
 
 
 class DocumentListResponse(BaseModel):

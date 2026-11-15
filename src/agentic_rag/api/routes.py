@@ -79,12 +79,25 @@ def get_document_storage(settings: Settings = Depends(get_settings)) -> Document
 @router.get("/documents", response_model=DocumentListResponse)
 def list_documents(
     storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
 ) -> DocumentListResponse:
     """List supported documents currently stored locally."""
 
-    return DocumentListResponse(
-        documents=[DocumentResponse(**document.__dict__) for document in storage.list_documents()]
-    )
+    return DocumentListResponse(documents=[_document_response(document, service) for document in storage.list_documents()])
+
+
+def _document_response(document: object, service: DocumentIndexingService) -> DocumentResponse:
+    """Attach current index readiness to one stored document."""
+
+    path = Path(document.path)
+    if not path.is_file():
+        status = "missing"
+    elif document.path not in service.vector_store.source_paths():
+        status = "stale"
+    else:
+        fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
+        status = "indexed" if fingerprint == document_repository.get_fingerprint(document.path) else "stale"
+    return DocumentResponse(**document.__dict__, status=status)
 
 
 @router.get("/documents/health", response_model=KnowledgeBaseHealthResponse)
