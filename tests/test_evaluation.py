@@ -66,8 +66,8 @@ def test_multi_document_benchmark_selects_sources_and_refuses_unknown_topics() -
 
     report = evaluator.run(cases)
 
-    assert report.total_cases == 9
-    assert report.retrieval_hits == 8
-    assert report.answer_matches == 9
-    assert report.citation_hits == 8
-    assert report.correct_refusals == 9
+    assert report.total_cases == 13
+    assert report.retrieval_hits == 12
+    assert report.answer_matches == 13
+    assert report.citation_hits == 12
+    assert report.correct_refusals == 13

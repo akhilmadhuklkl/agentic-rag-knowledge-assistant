@@ -56,6 +56,34 @@
     "expected_refusal": false
   },
   {
+    "question": "What response time applies to a normal support request?",
+    "category": "support_paraphrase",
+    "expected_source": "support_policy.md",
+    "expected_answer_keywords": ["support", "two|2", "business days"],
+    "expected_refusal": false
+  },
+  {
+    "question": "For privileged production access, which approval and authentication controls are required?",
+    "category": "access_multi_fact",
+    "expected_source": "access_policy.md",
+    "expected_answer_keywords": ["manager", "approval", "multi.factor"],
+    "expected_refusal": false
+  },
+  {
+    "question": "What details must be included when opening a support request?",
+    "category": "support_paraphrase",
+    "expected_source": "support_policy.md",
+    "expected_answer_keywords": ["service", "description", "issue started"],
+    "expected_refusal": false
+  },
+  {
+    "question": "Does the onboarding guide place platform orientation on the second working day?",
+    "category": "onboarding_verification",
+    "expected_source": "onboarding_guide.md",
+    "expected_answer_keywords": ["orientation", "second", "working day"],
+    "expected_refusal": false
+  },
+  {
     "question": "What is the interplanetary asteroid evacuation procedure?",
     "category": "refusal",
     "expected_refusal": true
