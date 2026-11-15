@@ -316,6 +316,13 @@ def ingestion_activity() -> list[IngestionActivityResponse]:
     return [IngestionActivityResponse(**event) for event in ingestion_repository.recent()]
 
 
+@router.get("/documents/{name}/metadata-history", response_model=list[IngestionActivityResponse])
+def document_metadata_history(name: str) -> list[IngestionActivityResponse]:
+    """Return the metadata edit audit trail for one document."""
+
+    return [IngestionActivityResponse(**event) for event in ingestion_repository.recent_for_document(name)]
+
+
 @router.post("/index/directory", response_model=IndexResponse)
 def index_directory(
     request: IndexPathRequest,

@@ -159,6 +159,12 @@ class SQLiteIngestionRepository:
         keys = ("action", "document_name", "detail", "created_at")
         return [dict(zip(keys, row, strict=True)) for row in rows]
 
+    def recent_for_document(self, document_name: str, limit: int = 20) -> list[dict[str, str]]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT action, document_name, detail, created_at FROM ingestion_activity WHERE document_name = ? AND action = 'metadata_updated' ORDER BY id DESC LIMIT ?", (document_name, limit)).fetchall()
+        keys = ("action", "document_name", "detail", "created_at")
+        return [dict(zip(keys, row, strict=True)) for row in rows]
+
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)
 
