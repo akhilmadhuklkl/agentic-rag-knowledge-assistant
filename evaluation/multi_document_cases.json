@@ -91,6 +91,13 @@
     "expected_refusal": false
   },
   {
+    "question": "According to the current access policy, how often are access reviews performed?",
+    "category": "conflict_resolution",
+    "expected_source": "access_policy.md",
+    "expected_answer_keywords": ["access", "90|ninety", "days"],
+    "expected_refusal": false
+  },
+  {
     "question": "What is the interplanetary asteroid evacuation procedure?",
     "category": "refusal",
     "expected_refusal": true

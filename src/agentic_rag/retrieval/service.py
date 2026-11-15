@@ -58,7 +58,8 @@ class HybridRetrievalService:
                 chunk=result.chunk,
                 score=(self.semantic_weight * result.score)
                 + ((1 - self.semantic_weight) * self._lexical_score(query_tokens, result.chunk))
-                + (0.1 * self._phrase_score(query, result.chunk)),
+                + (0.1 * self._phrase_score(query, result.chunk))
+                + self._authority_adjustment(result.chunk),
                 semantic_score=result.score,
                 lexical_score=self._lexical_score(query_tokens, result.chunk),
                 proximity_score=self._term_proximity_score(query, result.chunk),
@@ -114,6 +115,17 @@ class HybridRetrievalService:
             return 0.0
         span = max(positions) - min(positions) + 1
         return min(1.0, len(set(query_tokens)) / span)
+
+    @classmethod
+    def _authority_adjustment(cls, chunk: DocumentChunk) -> float:
+        """Prefer current policy language over explicitly obsolete notes."""
+
+        text = chunk.text.lower()
+        if any(marker in text for marker in ("legacy", "historical", "not the current", "older process")):
+            return -0.2
+        if "current policy" in text or "current access policy" in text:
+            return 0.05
+        return 0.0
 
     @staticmethod
     def _tokens_in_order(text: str) -> list[str]:

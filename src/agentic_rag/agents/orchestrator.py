@@ -94,6 +94,10 @@ class AgentOrchestrator:
                 result.lexical_score >= 0.3
                 and result.semantic_score >= 0.25
             )
+            or (
+                result.score >= self.minimum_evidence_score
+                and result.semantic_score >= 0.35
+            )
         ]
 
     @staticmethod
