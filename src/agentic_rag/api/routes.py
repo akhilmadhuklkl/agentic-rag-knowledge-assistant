@@ -332,7 +332,8 @@ def answer(
     generated = GroundedAnswerService(build_answer_model(get_settings())).generate(
         request.query, results
     )
-    confidence_warning = bool(generated.citations) and min(citation.confidence for citation in generated.citations) < 0.4
+    threshold = request.confidence_threshold if request.confidence_threshold is not None else get_settings().confidence_warning_threshold
+    confidence_warning = bool(generated.citations) and min(citation.confidence for citation in generated.citations) < threshold
     return AnswerResponse(
         answer=generated.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in generated.citations],
@@ -360,7 +361,8 @@ def ask(
     )
     response = assistant.ask(contextual_query, top_k=request.top_k)
     conversation_store.append(conversation_id, request.query, response.answer)
-    confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < 0.4
+    threshold = request.confidence_threshold if request.confidence_threshold is not None else settings.confidence_warning_threshold
+    confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < threshold
     return AskResponse(
         answer=response.answer,
         citations=[CitationResponse(**citation.__dict__) for citation in response.citations],
