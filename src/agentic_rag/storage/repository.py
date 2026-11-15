@@ -118,3 +118,26 @@ class SQLiteEvaluationRepository:
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)
+
+
+class SQLiteIngestionRepository:
+    """Persist a compact audit trail of document operations."""
+
+    def __init__(self, path: str | Path = "data/assistant.db") -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.execute("CREATE TABLE IF NOT EXISTS ingestion_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, document_name TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+
+    def record(self, action: str, document_name: str, detail: str) -> None:
+        with self._connect() as connection:
+            connection.execute("INSERT INTO ingestion_activity (action, document_name, detail) VALUES (?, ?, ?)", (action, document_name, detail))
+
+    def recent(self, limit: int = 20) -> list[dict[str, str]]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT action, document_name, detail, created_at FROM ingestion_activity ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        keys = ("action", "document_name", "detail", "created_at")
+        return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def _connect(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.path)

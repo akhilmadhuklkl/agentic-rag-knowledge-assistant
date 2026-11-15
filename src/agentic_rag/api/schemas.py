@@ -47,6 +47,15 @@ class ReindexStaleResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class IngestionActivityResponse(BaseModel):
+    """One document ingestion event."""
+
+    action: str
+    document_name: str
+    detail: str
+    created_at: str
+
+
 class CleanupResponse(BaseModel):
     removed_sources: int
 

@@ -24,6 +24,7 @@ from agentic_rag.api.schemas import (
     FeedbackRequest,
     IndexPathRequest,
     IndexResponse,
+    IngestionActivityResponse,
     KnowledgeBaseHealthResponse,
     ReindexStaleResponse,
     SearchRequest,
@@ -44,6 +45,7 @@ from agentic_rag.storage.repository import (
     SQLiteDocumentRepository,
     SQLiteEvaluationRepository,
     SQLiteFeedbackRepository,
+    SQLiteIngestionRepository,
 )
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
@@ -54,6 +56,7 @@ conversation_store = ConversationStore(
 document_repository = SQLiteDocumentRepository(get_settings().database_path)
 feedback_repository = SQLiteFeedbackRepository(get_settings().database_path)
 evaluation_repository = SQLiteEvaluationRepository(get_settings().database_path)
+ingestion_repository = SQLiteIngestionRepository(get_settings().database_path)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
@@ -145,9 +148,11 @@ def reindex_stale_documents(
             try:
                 service.reindex_file(document.path)
                 processed.append(document.name)
+                ingestion_repository.record("reindexed", document.name, "Bulk stale-document refresh completed")
                 reindexed += 1
             except (OSError, ValueError, RuntimeError) as error:
                 errors.append(f"{document.name}: {error}")
+                ingestion_repository.record("failed", document.name, str(error))
     return ReindexStaleResponse(
         reindexed_count=reindexed,
         skipped_missing_count=missing,
@@ -166,7 +171,8 @@ async def upload_document(
     """Upload one supported document into local controlled storage."""
 
     document = storage.save(file.filename or "", await file.read())
-    indexing.index_file(document.path)
+    summary = indexing.index_file(document.path)
+    ingestion_repository.record("uploaded", document.name, f"Indexed {summary.chunk_count} chunks")
     return DocumentResponse(**document.__dict__)
 
 
@@ -180,6 +186,7 @@ def delete_document(
 
     document = storage.delete(name)
     indexing.vector_store.delete_source(document.path)
+    ingestion_repository.record("deleted", document.name, "Removed document and indexed knowledge")
     return DocumentResponse(**document.__dict__)
 
 
@@ -191,7 +198,15 @@ def index_file(
     """Index one local document."""
 
     summary = service.index_file(request.path)
+    ingestion_repository.record("reindexed", Path(request.path).name, f"Indexed {summary.chunk_count} chunks")
     return IndexResponse(**summary.__dict__)
+
+
+@router.get("/documents/activity", response_model=list[IngestionActivityResponse])
+def ingestion_activity() -> list[IngestionActivityResponse]:
+    """Return recent document ingestion operations."""
+
+    return [IngestionActivityResponse(**event) for event in ingestion_repository.recent()]
 
 
 @router.post("/index/directory", response_model=IndexResponse)
