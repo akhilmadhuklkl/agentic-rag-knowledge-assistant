@@ -164,6 +164,7 @@ class CitationResponse(BaseModel):
     source_name: str
     page_number: int | None
     excerpt: str
+    confidence: float
 
 
 class AnswerResponse(BaseModel):

@@ -16,6 +16,7 @@ class Citation:
     source_name: str
     page_number: int | None
     excerpt: str
+    confidence: float
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ class GroundedAnswerService:
                 source_name=result.chunk.source_name,
                 page_number=result.chunk.page_number,
                 excerpt=" ".join(result.chunk.text.split())[:360],
+                confidence=round(min(1.0, max(0.0, result.score)), 4),
             )
             for index, result in enumerate(results, start=1)
         ]
