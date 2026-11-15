@@ -66,13 +66,28 @@ class AgentOrchestrator:
         return [
             result
             for result in results
-            if result.score >= self.minimum_evidence_score
-            and result.lexical_score >= self.minimum_lexical_overlap
+            if (
+                result.score >= self.minimum_evidence_score
+                and result.lexical_score >= self.minimum_lexical_overlap
+            )
+            or (
+                result.lexical_score >= 0.3
+                and result.semantic_score >= 0.25
+            )
         ]
 
     @staticmethod
     def _refine_query(question: str) -> str:
         """Use a compact keyword-focused retry query."""
 
-        stop_words = {"what", "when", "where", "which", "how", "does", "is", "are", "the"}
-        return " ".join(word for word in question.split() if word.lower().strip("?!.,") not in stop_words)
+        stop_words = {
+            "what", "when", "where", "which", "how", "does", "do", "is", "are", "the",
+            "i", "have", "to", "a",
+        }
+        words = [
+            word for word in question.split() if word.lower().strip("?!.,") not in stop_words
+        ]
+        normalized = {word.lower().strip("?!.,") for word in words}
+        expansions = {"refund": "policy", "refunded": "policy", "reimbursement": "policy"}
+        words.extend(term for source, term in expansions.items() if source in normalized)
+        return " ".join(words)
