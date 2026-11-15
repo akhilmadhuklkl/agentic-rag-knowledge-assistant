@@ -226,6 +226,8 @@ class CitationResponse(BaseModel):
     semantic_score: float
     lexical_score: float
     proximity_score: float = 0.0
+    authority: str = "standard"
+    freshness: str = "unspecified"
 
 
 class AnswerResponse(BaseModel):

@@ -17,6 +17,8 @@ class RetrievalResult:
     semantic_score: float
     lexical_score: float
     proximity_score: float = 0.0
+    authority: str = "standard"
+    freshness: str = "unspecified"
 
 
 class HybridRetrievalService:
@@ -63,6 +65,8 @@ class HybridRetrievalService:
                 semantic_score=result.score,
                 lexical_score=self._lexical_score(query_tokens, result.chunk),
                 proximity_score=self._term_proximity_score(query, result.chunk),
+                authority=result.chunk.authority,
+                freshness=result.chunk.freshness,
             )
             for result in candidates
         ]
@@ -73,6 +77,8 @@ class HybridRetrievalService:
                 semantic_score=result.semantic_score,
                 lexical_score=result.lexical_score,
                 proximity_score=result.proximity_score,
+                authority=result.authority,
+                freshness=result.freshness,
             )
             for result in results
         ]

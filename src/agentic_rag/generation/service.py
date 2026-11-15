@@ -20,6 +20,8 @@ class Citation:
     semantic_score: float
     lexical_score: float
     proximity_score: float
+    authority: str
+    freshness: str
 
 
 @dataclass(frozen=True)
@@ -64,6 +66,8 @@ class GroundedAnswerService:
                 semantic_score=round(result.semantic_score, 4),
                 lexical_score=round(result.lexical_score, 4),
                 proximity_score=round(result.proximity_score, 4),
+                authority=result.authority,
+                freshness=result.freshness,
             )
             for index, result in enumerate(results, start=1)
         ]
