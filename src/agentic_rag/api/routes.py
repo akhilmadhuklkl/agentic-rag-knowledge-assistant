@@ -383,7 +383,7 @@ def ask(
     )
     semantic_weight = _search_mode_weight(request.search_mode, settings.retrieval_semantic_weight)
     response = assistant.ask(contextual_query, top_k=request.top_k, semantic_weight=semantic_weight, file_type=request.file_type)
-    latency_repository.record(response.duration_ms, request.latency_profile)
+    latency_repository.record(response.duration_ms, request.latency_profile, response.stage_timings)
     conversation_store.append(conversation_id, request.query, response.answer)
     threshold = request.confidence_threshold if request.confidence_threshold is not None else settings.confidence_warning_threshold
     confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < threshold
@@ -429,7 +429,9 @@ def latency_summary() -> LatencySummaryResponse:
     if not values:
         return LatencySummaryResponse(sample_count=0, fastest_ms=None, slowest_ms=None, average_ms=None, p95_ms=None)
     p95_index = min(len(values) - 1, max(0, math.ceil(len(values) * 0.95) - 1))
-    return LatencySummaryResponse(sample_count=len(values), fastest_ms=round(values[0], 2), slowest_ms=round(values[-1], 2), average_ms=round(sum(values) / len(values), 2), p95_ms=round(values[p95_index], 2))
+    samples = latency_repository.recent(100)
+    stage_averages = {stage: round(sum(float(sample[f"{stage}_ms"]) for sample in samples if sample[f"{stage}_ms"] is not None) / max(1, sum(sample[f"{stage}_ms"] is not None for sample in samples)), 2) for stage in ("retrieval", "generation", "verification")}
+    return LatencySummaryResponse(sample_count=len(values), fastest_ms=round(values[0], 2), slowest_ms=round(values[-1], 2), average_ms=round(sum(values) / len(values), 2), p95_ms=round(values[p95_index], 2), stage_averages_ms=stage_averages)
 
 
 @router.post("/feedback")

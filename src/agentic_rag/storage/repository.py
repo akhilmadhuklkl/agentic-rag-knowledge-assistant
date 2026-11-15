@@ -160,15 +160,20 @@ class SQLiteLatencyRepository:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.execute("CREATE TABLE IF NOT EXISTS latency_history (id INTEGER PRIMARY KEY AUTOINCREMENT, duration_ms REAL NOT NULL, profile TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(latency_history)").fetchall()}
+            for column in ("retrieval_ms", "generation_ms", "verification_ms"):
+                if column not in columns:
+                    connection.execute(f"ALTER TABLE latency_history ADD COLUMN {column} REAL")
 
-    def record(self, duration_ms: float, profile: str) -> None:
+    def record(self, duration_ms: float, profile: str, stage_timings: dict[str, float] | None = None) -> None:
         with self._connect() as connection:
-            connection.execute("INSERT INTO latency_history (duration_ms, profile) VALUES (?, ?)", (duration_ms, profile))
+            timings = stage_timings or {}
+            connection.execute("INSERT INTO latency_history (duration_ms, profile, retrieval_ms, generation_ms, verification_ms) VALUES (?, ?, ?, ?, ?)", (duration_ms, profile, timings.get("retrieval"), timings.get("generation"), timings.get("verification")))
 
     def recent(self, limit: int = 20) -> list[dict[str, object]]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT duration_ms, profile, created_at FROM latency_history ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
-        keys = ("duration_ms", "profile", "created_at")
+            rows = connection.execute("SELECT duration_ms, profile, created_at, retrieval_ms, generation_ms, verification_ms FROM latency_history ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        keys = ("duration_ms", "profile", "created_at", "retrieval_ms", "generation_ms", "verification_ms")
         return [dict(zip(keys, row, strict=True)) for row in rows]
 
     def _connect(self) -> sqlite3.Connection:
