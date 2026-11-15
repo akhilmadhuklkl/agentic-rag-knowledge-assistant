@@ -80,6 +80,18 @@ class FeedbackRequest(BaseModel):
     conversation_id: str | None = Field(default=None, max_length=64)
 
 
+class EvaluationCaseResponse(BaseModel):
+    """Result details for one quality benchmark case."""
+
+    question: str
+    expected_source: str | None
+    cited_sources: list[str]
+    retrieval_hit: bool
+    answer_match: bool
+    citation_hit: bool
+    refusal_correct: bool
+
+
 class EvaluationReportResponse(BaseModel):
     """Quality report from the repeatable evaluation dataset."""
 
@@ -92,6 +104,7 @@ class EvaluationReportResponse(BaseModel):
     answer_match_rate: float
     citation_accuracy: float
     refusal_accuracy: float
+    cases: list[EvaluationCaseResponse]
 
 
 class CitationResponse(BaseModel):

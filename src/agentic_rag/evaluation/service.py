@@ -37,6 +37,7 @@ class EvaluationReport:
     answer_matches: int
     citation_hits: int
     correct_refusals: int
+    cases: list["EvaluationCaseResult"]
 
     @property
     def retrieval_hit_rate(self) -> float:
@@ -54,7 +55,7 @@ class EvaluationReport:
     def refusal_accuracy(self) -> float:
         return self._rate(self.correct_refusals)
 
-    def as_dict(self) -> dict[str, int | float]:
+    def as_dict(self) -> dict[str, int | float | list[dict[str, object]]]:
         """Return report values in an API- and JSON-friendly shape."""
 
         return {
@@ -67,10 +68,27 @@ class EvaluationReport:
             "answer_match_rate": round(self.answer_match_rate, 4),
             "citation_accuracy": round(self.citation_accuracy, 4),
             "refusal_accuracy": round(self.refusal_accuracy, 4),
+            "cases": [case.as_dict() for case in self.cases],
         }
 
     def _rate(self, value: int) -> float:
         return value / self.total_cases if self.total_cases else 0.0
+
+
+@dataclass(frozen=True)
+class EvaluationCaseResult:
+    """Explain the outcome of one benchmark question."""
+
+    question: str
+    expected_source: str | None
+    cited_sources: list[str]
+    retrieval_hit: bool
+    answer_match: bool
+    citation_hit: bool
+    refusal_correct: bool
+
+    def as_dict(self) -> dict[str, object]:
+        return self.__dict__.copy()
 
 
 class EvaluationService:
@@ -90,22 +108,30 @@ class EvaluationService:
         """Run all cases and calculate simple quality metrics."""
 
         retrieval_hits = answer_matches = citation_hits = correct_refusals = 0
+        case_results: list[EvaluationCaseResult] = []
         for case in cases:
             response = self.assistant.ask(case.question)
-            source_names = {citation.source_name for citation in response.citations}
-            if case.expected_source is not None and case.expected_source in source_names:
+            source_names = sorted({citation.source_name for citation in response.citations})
+            retrieval_hit = case.expected_source is not None and case.expected_source in source_names
+            citation_hit = retrieval_hit
+            answer_match = case.matches_answer(response.answer)
+            refusal_correct = response.refusal is case.expected_refusal
+            if retrieval_hit:
                 retrieval_hits += 1
+            if citation_hit:
                 citation_hits += 1
-            if case.matches_answer(response.answer):
+            if answer_match:
                 answer_matches += 1
-            if response.refusal is case.expected_refusal:
+            if refusal_correct:
                 correct_refusals += 1
+            case_results.append(EvaluationCaseResult(case.question, case.expected_source, source_names, retrieval_hit, answer_match, citation_hit, refusal_correct))
         return EvaluationReport(
             total_cases=len(cases),
             retrieval_hits=retrieval_hits,
             answer_matches=answer_matches,
             citation_hits=citation_hits,
             correct_refusals=correct_refusals,
+            cases=case_results,
         )
 
 
