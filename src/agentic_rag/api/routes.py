@@ -230,7 +230,7 @@ def preview_document(
         if page > len(reader.pages):
             raise ValueError(f"PDF has {len(reader.pages)} page(s); page {page} does not exist")
         text = reader.pages[page - 1].extract_text() or ""
-        return PlainTextResponse(text, headers={"X-Preview-Page": str(page)})
+        return PlainTextResponse(text, headers={"X-Preview-Page": str(page), "X-Preview-Total-Pages": str(len(reader.pages))})
     raise ValueError("Preview is available for supported document types only.")
 
 
