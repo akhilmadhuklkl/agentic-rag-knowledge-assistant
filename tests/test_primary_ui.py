@@ -29,6 +29,8 @@ def test_primary_ui_assets_exist_and_are_mounted() -> None:
     assert 'requestSubmit()' in javascript
     assert "escapeHtml" in javascript
     assert "source-excerpt" in javascript
+    assert "deleteDocument" in javascript
+    assert "/knowledge/documents/" in javascript
     assert ".answer-card{display:block}" in styles
     assert ".answer-loader.hidden,.answer-content.hidden{display:none}" in styles
     assert ".answer-text{max-height:360px;overflow-y:auto" in styles
