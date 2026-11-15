@@ -27,7 +27,7 @@ def test_orchestrator_plans_document_search() -> None:
 def test_orchestrator_runs_search_and_returns_evidence() -> None:
     result = build_orchestrator().run("What is the refund policy?", top_k=1)
 
-    assert result.attempts == 1
+    assert result.attempts == 2
     assert result.needs_clarification is False
     assert result.results[0].chunk.source_name == "policy.md"
 
@@ -46,3 +46,10 @@ def test_orchestrator_clarifies_short_questions() -> None:
     assert result.plan.action is PlanAction.CLARIFY
     assert result.needs_clarification is True
     assert result.attempts == 0
+
+
+def test_orchestrator_rejects_low_confidence_semantic_matches() -> None:
+    result = build_orchestrator().run("What is the quantum spaceship launch protocol?", top_k=1)
+
+    assert result.needs_clarification is True
+    assert result.results == []

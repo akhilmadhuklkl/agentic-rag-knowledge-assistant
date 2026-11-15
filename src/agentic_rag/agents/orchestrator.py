@@ -12,7 +12,7 @@ class AgentOrchestrator:
         self,
         indexing_service: DocumentIndexingService,
         max_attempts: int = 2,
-        minimum_evidence_score: float = 0.25,
+        minimum_evidence_score: float = 0.4,
     ) -> None:
         if max_attempts <= 0:
             raise ValueError("max_attempts must be positive")

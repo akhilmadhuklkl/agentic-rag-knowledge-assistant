@@ -211,8 +211,9 @@ def ask(
     conversation_id = request.conversation_id or conversation_store.create()
     history = conversation_store.get(conversation_id)
     contextual_query = conversation_store.contextual_query(request.query, history)
+    settings = get_settings()
     assistant = KnowledgeAssistantService(
-        AgentOrchestrator(service),
+        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score),
         GroundedAnswerService(build_answer_model(get_settings())),
     )
     response = assistant.ask(contextual_query, top_k=request.top_k)
@@ -255,7 +256,7 @@ def run_evaluation(
 
     settings = get_settings()
     assistant = KnowledgeAssistantService(
-        AgentOrchestrator(service),
+        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score),
         GroundedAnswerService(build_answer_model(settings)),
     )
     cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))

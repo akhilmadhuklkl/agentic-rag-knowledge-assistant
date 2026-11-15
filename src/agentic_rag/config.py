@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     conversation_store_path: str = "data/conversations.json"
     database_path: str = "data/assistant.db"
     retrieval_semantic_weight: float = 0.7
+    minimum_evidence_score: float = 0.4
     default_top_k: int = 5
     max_top_k: int = 50
     api_key: str | None = None
