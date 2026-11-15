@@ -24,6 +24,7 @@ class AssistantResponse:
     action: PlanAction
     attempts: int
     duration_ms: float
+    stage_timings: dict[str, float]
 
 
 class KnowledgeAssistantService:
@@ -43,9 +44,15 @@ class KnowledgeAssistantService:
         """Answer one question through the complete workflow."""
 
         started = perf_counter()
+        retrieval_started = perf_counter()
         orchestration = self.orchestrator.run(question, top_k=top_k, semantic_weight=semantic_weight, file_type=file_type)
+        retrieval_ms = round((perf_counter() - retrieval_started) * 1000, 2)
+        generation_started = perf_counter()
         generated = self.answer_service.generate(question, orchestration.results)
+        generation_ms = round((perf_counter() - generation_started) * 1000, 2)
+        verification_started = perf_counter()
         verification = self.verifier.verify(generated, orchestration.results)
+        verification_ms = round((perf_counter() - verification_started) * 1000, 2)
         duration_ms = round((perf_counter() - started) * 1000, 2)
         log_event(
             "assistant_workflow_completed",
@@ -54,6 +61,7 @@ class KnowledgeAssistantService:
             grounded=generated.grounded,
             verified=verification.verified,
             duration_ms=duration_ms,
+            stage_timings={"retrieval": retrieval_ms, "generation": generation_ms, "verification": verification_ms},
         )
         metrics.increment("assistant_requests_total")
         metrics.increment("assistant_refusals_total" if generated.refusal else "assistant_answers_total")
@@ -69,4 +77,5 @@ class KnowledgeAssistantService:
             action=orchestration.plan.action,
             attempts=orchestration.attempts,
             duration_ms=duration_ms,
+            stage_timings={"retrieval": retrieval_ms, "generation": generation_ms, "verification": verification_ms},
         )
