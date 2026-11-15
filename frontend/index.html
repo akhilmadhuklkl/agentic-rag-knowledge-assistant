@@ -25,6 +25,7 @@
         <section class="sources-panel" id="sources"><div class="panel-heading"><div><span class="kicker">KNOWLEDGE BASE</span><h3>Manage your sources</h3><p>Upload a file and Atlas will index it automatically.</p></div><div class="source-actions"><label class="upload-button" for="file-upload">＋ Upload document</label><input id="file-upload" type="file" accept=".pdf,.md,.markdown,.txt" /><button id="load-sources" class="secondary-button">Refresh sources</button></div></div><div id="upload-status" class="upload-status"></div><div id="source-list" class="source-list"><div class="empty-state">No source list loaded yet.</div></div></section>
       </main>
     </div>
+    <dialog id="source-preview" class="source-preview"><div class="preview-heading"><div><span class="kicker">SOURCE PREVIEW</span><h3 id="preview-title">Evidence</h3></div><button id="close-preview" class="preview-close" type="button" aria-label="Close source preview">×</button></div><div id="preview-meta" class="preview-meta"></div><p id="preview-text" class="preview-text"></p></dialog>
     <div id="toast" class="toast"></div>
     <script src="/app/app.js"></script>
   </body>
