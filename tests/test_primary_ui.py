@@ -36,6 +36,8 @@ def test_primary_ui_assets_exist_and_are_mounted() -> None:
     assert 'id="source-preview"' in html
     assert "openSourcePreview" in javascript
     assert "View source excerpt" in javascript
+    assert "/metrics" in javascript
+    assert "verified-rate" in html
     assert ".answer-card{display:block}" in styles
     assert ".answer-loader.hidden,.answer-content.hidden{display:none}" in styles
     assert ".answer-text{max-height:360px;overflow-y:auto" in styles
