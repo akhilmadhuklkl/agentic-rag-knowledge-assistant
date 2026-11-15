@@ -225,6 +225,7 @@ class CitationResponse(BaseModel):
     confidence: float
     semantic_score: float
     lexical_score: float
+    proximity_score: float = 0.0
 
 
 class AnswerResponse(BaseModel):

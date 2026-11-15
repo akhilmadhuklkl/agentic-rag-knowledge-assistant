@@ -16,6 +16,7 @@ class RetrievalResult:
     score: float
     semantic_score: float
     lexical_score: float
+    proximity_score: float = 0.0
 
 
 class HybridRetrievalService:
@@ -57,15 +58,17 @@ class HybridRetrievalService:
                 + (0.1 * self._phrase_score(query, result.chunk)),
                 semantic_score=result.score,
                 lexical_score=self._lexical_score(query_tokens, result.chunk),
+                proximity_score=self._term_proximity_score(query, result.chunk),
             )
             for result in candidates
         ]
         results = [
             RetrievalResult(
                 chunk=result.chunk,
-                score=result.score + (0.08 * self._term_proximity_score(query, result.chunk)),
+                score=result.score + (0.08 * result.proximity_score),
                 semantic_score=result.semantic_score,
                 lexical_score=result.lexical_score,
+                proximity_score=result.proximity_score,
             )
             for result in results
         ]
