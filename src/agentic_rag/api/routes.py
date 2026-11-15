@@ -32,7 +32,7 @@ from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 from agentic_rag.metrics import metrics
 from agentic_rag.storage.documents import DocumentStorageService
-from agentic_rag.storage.repository import SQLiteDocumentRepository
+from agentic_rag.storage.repository import SQLiteDocumentRepository, SQLiteFeedbackRepository
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -40,6 +40,7 @@ conversation_store = ConversationStore(
     repository=SQLiteConversationRepository(get_settings().database_path)
 )
 document_repository = SQLiteDocumentRepository(get_settings().database_path)
+feedback_repository = SQLiteFeedbackRepository(get_settings().database_path)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
@@ -233,7 +234,15 @@ def submit_feedback(request: FeedbackRequest) -> dict[str, str]:
     """Record lightweight answer-quality feedback for local observability."""
 
     metrics.increment(f"answer_feedback_{request.rating}_total")
+    feedback_repository.record(request.rating, request.conversation_id)
     return {"status": "recorded", "rating": request.rating}
+
+
+@router.get("/feedback/summary")
+def feedback_summary() -> dict[str, int]:
+    """Return persisted answer-quality feedback totals."""
+
+    return feedback_repository.summary()
 
 
 @router.get("/conversations", response_model=ConversationListResponse)

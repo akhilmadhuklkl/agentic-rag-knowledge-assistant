@@ -40,6 +40,8 @@ def test_primary_ui_assets_exist_and_are_mounted() -> None:
     assert "verified-rate" in html
     assert 'data-rating="helpful"' in html
     assert "/knowledge/feedback" in javascript
+    assert "/knowledge/feedback/summary" in javascript
+    assert "feedback-rate" in html
     assert ".answer-card{display:block}" in styles
     assert ".answer-loader.hidden,.answer-content.hidden{display:none}" in styles
     assert ".answer-text{max-height:360px;overflow-y:auto" in styles

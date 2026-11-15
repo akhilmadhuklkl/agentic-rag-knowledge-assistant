@@ -53,3 +53,35 @@ class SQLiteDocumentRepository:
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)
+
+
+class SQLiteFeedbackRepository:
+    """Persist answer-quality feedback in SQLite."""
+
+    def __init__(self, path: str | Path = "data/assistant.db") -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.execute("CREATE TABLE IF NOT EXISTS answer_feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, rating TEXT NOT NULL, conversation_id TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+
+    def record(self, rating: str, conversation_id: str | None = None) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO answer_feedback (rating, conversation_id) VALUES (?, ?)",
+                (rating, conversation_id),
+            )
+
+    def summary(self) -> dict[str, int]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT rating, COUNT(*) FROM answer_feedback GROUP BY rating"
+            ).fetchall()
+        values = {str(rating): int(count) for rating, count in rows}
+        return {
+            "total": sum(values.values()),
+            "helpful": values.get("helpful", 0),
+            "needs_improvement": values.get("needs_improvement", 0),
+        }
+
+    def _connect(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.path)
