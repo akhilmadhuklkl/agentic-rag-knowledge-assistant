@@ -1,5 +1,6 @@
 """Safe local storage for knowledge-base documents."""
 
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,6 +43,12 @@ class DocumentStorageService:
             raise ValueError("document exceeds the maximum allowed size")
 
         destination = self.root / safe_name
+        if destination.exists():
+            raise ValueError(f"A document named '{safe_name}' already exists")
+        content_hash = hashlib.sha256(content).digest()
+        for existing in self.root.iterdir():
+            if existing.is_file() and existing.suffix.lower() in SUPPORTED_EXTENSIONS and hashlib.sha256(existing.read_bytes()).digest() == content_hash:
+                raise ValueError(f"This file duplicates the existing document '{existing.name}'")
         destination.write_bytes(content)
         document = self._metadata(destination)
         if self.repository:

@@ -4,12 +4,11 @@ from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.storage.repository import SQLiteDocumentRepository
 
 
-def test_sqlite_document_repository_stores_metadata_and_fingerprint() -> None:
-    database = Path(__file__).parent / ".runtime" / "documents.db"
-    database.unlink(missing_ok=True)
+def test_sqlite_document_repository_stores_metadata_and_fingerprint(tmp_path: Path) -> None:
+    database = tmp_path / "documents.db"
     repository = SQLiteDocumentRepository(database)
     document = DocumentStorageService(
-        Path(__file__).parent / ".runtime" / "repository-documents",
+        tmp_path / "repository-documents",
         repository=repository,
     ).save("policy.md", b"refund policy")
 
