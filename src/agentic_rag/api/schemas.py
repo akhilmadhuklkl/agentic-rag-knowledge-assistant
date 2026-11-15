@@ -1,5 +1,7 @@
 """API request and response models."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -68,6 +70,13 @@ class SearchResponse(BaseModel):
 class AnswerRequest(SearchRequest):
     """Request to retrieve evidence and generate a grounded answer."""
 
+    conversation_id: str | None = Field(default=None, max_length=64)
+
+
+class FeedbackRequest(BaseModel):
+    """User quality feedback for one generated answer."""
+
+    rating: Literal["helpful", "needs_improvement"]
     conversation_id: str | None = Field(default=None, max_length=64)
 
 

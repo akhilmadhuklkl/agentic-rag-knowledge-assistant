@@ -16,6 +16,7 @@ from agentic_rag.api.schemas import (
     ConversationTurnResponse,
     DocumentListResponse,
     DocumentResponse,
+    FeedbackRequest,
     IndexPathRequest,
     IndexResponse,
     SearchRequest,
@@ -29,6 +30,7 @@ from agentic_rag.embeddings.providers import build_embedding_provider
 from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
+from agentic_rag.metrics import metrics
 from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.storage.repository import SQLiteDocumentRepository
 from agentic_rag.workflow.service import KnowledgeAssistantService
@@ -224,6 +226,14 @@ def ask(
         duration_ms=response.duration_ms,
         conversation_id=conversation_id,
     )
+
+
+@router.post("/feedback")
+def submit_feedback(request: FeedbackRequest) -> dict[str, str]:
+    """Record lightweight answer-quality feedback for local observability."""
+
+    metrics.increment(f"answer_feedback_{request.rating}_total")
+    return {"status": "recorded", "rating": request.rating}
 
 
 @router.get("/conversations", response_model=ConversationListResponse)
