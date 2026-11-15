@@ -13,14 +13,18 @@ class AgentOrchestrator:
         indexing_service: DocumentIndexingService,
         max_attempts: int = 2,
         minimum_evidence_score: float = 0.4,
+        minimum_lexical_overlap: float = 0.3,
     ) -> None:
         if max_attempts <= 0:
             raise ValueError("max_attempts must be positive")
         if not 0 <= minimum_evidence_score <= 1:
             raise ValueError("minimum_evidence_score must be between 0 and 1")
+        if not 0 <= minimum_lexical_overlap <= 1:
+            raise ValueError("minimum_lexical_overlap must be between 0 and 1")
         self.indexing_service = indexing_service
         self.max_attempts = max_attempts
         self.minimum_evidence_score = minimum_evidence_score
+        self.minimum_lexical_overlap = minimum_lexical_overlap
 
     def plan(self, question: str) -> QueryPlan:
         """Create a simple plan from the user question."""
@@ -59,7 +63,12 @@ class AgentOrchestrator:
 
     def _reliable_results(self, query: str, top_k: int) -> list[RetrievalResult]:
         results = self.indexing_service.search(query, top_k=top_k)
-        return [result for result in results if result.score >= self.minimum_evidence_score]
+        return [
+            result
+            for result in results
+            if result.score >= self.minimum_evidence_score
+            and result.lexical_score >= self.minimum_lexical_overlap
+        ]
 
     @staticmethod
     def _refine_query(question: str) -> str:
