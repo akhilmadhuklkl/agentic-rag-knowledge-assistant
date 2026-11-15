@@ -18,6 +18,8 @@ class DocumentResponse(BaseModel):
     path: str
     size_bytes: int
     file_type: str
+    authority: str = "standard"
+    freshness: str = "unspecified"
     status: Literal["indexed", "stale", "missing", "unknown"] = "unknown"
     upload_date: str | None = None
 

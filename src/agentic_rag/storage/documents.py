@@ -17,6 +17,8 @@ class StoredDocument:
     path: str
     size_bytes: int
     file_type: str
+    authority: str = "standard"
+    freshness: str = "unspecified"
 
 
 class DocumentStorageService:

@@ -67,6 +67,8 @@ class DocumentIndexingService:
                     path=str(source_path),
                     size_bytes=source_path.stat().st_size,
                     file_type=source_path.suffix.lower().lstrip("."),
+                    authority=chunks[0].authority if chunks else "standard",
+                    freshness=chunks[0].freshness if chunks else "unspecified",
                 )
             )
         self.vector_store.delete_source(str(source_path))

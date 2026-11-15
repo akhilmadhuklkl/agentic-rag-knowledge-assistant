@@ -18,19 +18,22 @@ class SQLiteDocumentRepository:
             if "created_at" not in columns:
                 connection.execute("ALTER TABLE documents ADD COLUMN created_at TEXT")
                 connection.execute("UPDATE documents SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+            for column in ("authority", "freshness"):
+                if column not in columns:
+                    connection.execute(f"ALTER TABLE documents ADD COLUMN {column} TEXT NOT NULL DEFAULT 'standard'")
             connection.execute("CREATE TABLE IF NOT EXISTS index_manifest (source_path TEXT PRIMARY KEY, fingerprint TEXT NOT NULL)")
 
     def upsert_document(self, document: StoredDocument) -> None:
         with self._connect() as connection:
             connection.execute(
-                "INSERT INTO documents (name, path, size_bytes, file_type) VALUES (?, ?, ?, ?) "
-                "ON CONFLICT(name) DO UPDATE SET path=excluded.path, size_bytes=excluded.size_bytes, file_type=excluded.file_type",
-                (document.name, document.path, document.size_bytes, document.file_type),
+                "INSERT INTO documents (name, path, size_bytes, file_type, authority, freshness) VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(name) DO UPDATE SET path=excluded.path, size_bytes=excluded.size_bytes, file_type=excluded.file_type, authority=excluded.authority, freshness=excluded.freshness",
+                (document.name, document.path, document.size_bytes, document.file_type, document.authority, document.freshness),
             )
 
     def list_documents(self) -> list[StoredDocument]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT name, path, size_bytes, file_type FROM documents ORDER BY name").fetchall()
+            rows = connection.execute("SELECT name, path, size_bytes, file_type, authority, freshness FROM documents ORDER BY name").fetchall()
         return [StoredDocument(*row) for row in rows]
 
     def get_fingerprint(self, source_path: str) -> str | None:
