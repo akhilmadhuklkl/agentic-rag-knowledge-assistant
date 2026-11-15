@@ -500,6 +500,7 @@ def run_evaluation(
             cases = EvaluationService.load_cases(Path("evaluation/multi_document_cases.json"))
             report = EvaluationService(assistant).run(cases)
             values = report.as_dict()
+            _add_evaluation_thresholds(values, settings)
             evaluation_repository.record(dataset, values)
             return EvaluationReportResponse(**values)
     assistant = KnowledgeAssistantService(
@@ -509,8 +510,28 @@ def run_evaluation(
     cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))
     report = EvaluationService(assistant).run(cases)
     values = report.as_dict()
+    _add_evaluation_thresholds(values, settings)
     evaluation_repository.record(dataset, values)
     return EvaluationReportResponse(**values)
+
+
+def _add_evaluation_thresholds(values: dict[str, object], settings: Settings) -> None:
+    """Annotate a report with explicit quality gates for the UI and API."""
+
+    thresholds = {
+        "answerable_retrieval_rate": settings.evaluation_retrieval_threshold,
+        "answerable_citation_accuracy": settings.evaluation_citation_threshold,
+        "answer_match_rate": settings.evaluation_regression_threshold,
+        "refusal_case_accuracy": settings.evaluation_regression_threshold,
+    }
+    issues = [
+        f"{metric.replace('_', ' ').title()} is below {threshold:.0%}."
+        for metric, threshold in thresholds.items()
+        if float(values[metric]) < threshold
+    ]
+    values["quality_thresholds"] = thresholds
+    values["quality_issues"] = issues
+    values["quality_passed"] = not issues
 
 
 @router.get("/evaluation/history", response_model=list[EvaluationHistoryResponse])

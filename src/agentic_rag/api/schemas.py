@@ -179,6 +179,9 @@ class EvaluationReportResponse(BaseModel):
     refusal_case_accuracy: float = 0.0
     refusal_case_correct: int = 0
     category_metrics: dict[str, dict[str, int | float]] = Field(default_factory=dict)
+    quality_passed: bool = True
+    quality_thresholds: dict[str, float] = Field(default_factory=dict)
+    quality_issues: list[str] = Field(default_factory=list)
 
 
 class ProviderComparisonResponse(BaseModel):
