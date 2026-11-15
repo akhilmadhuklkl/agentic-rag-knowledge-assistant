@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import httpx
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
 
@@ -30,6 +31,7 @@ from agentic_rag.api.schemas import (
     KnowledgeBaseHealthResponse,
     LatencyHistoryResponse,
     LatencySummaryResponse,
+    ProviderHealthResponse,
     ReindexStaleResponse,
     SearchRequest,
     SearchResponse,
@@ -75,6 +77,25 @@ def _latency_target(profile: str, default: float) -> float:
     """Translate a performance profile into a warning target."""
 
     return {"local": default * 1.5, "strict": default * 0.6}.get(profile, default)
+
+
+@router.get("/providers/health", response_model=ProviderHealthResponse)
+def provider_health(settings: Settings = Depends(get_settings)) -> ProviderHealthResponse:  # noqa: B008
+    """Report configured model providers and Ollama reachability."""
+
+    needs_ollama = settings.llm_provider.lower() == "ollama" or settings.embedding_provider.lower() == "ollama"
+    reachable = False
+    if needs_ollama:
+        try:
+            response = httpx.get(f"{settings.llm_base_url.rstrip('/')}/api/tags", timeout=2.0)
+            reachable = response.is_success
+        except httpx.HTTPError:
+            reachable = False
+    else:
+        reachable = True
+    status = "ready" if reachable else "degraded"
+    detail = "Configured local providers are ready." if reachable and not needs_ollama else ("Ollama is reachable." if reachable else "Ollama is not reachable; check that the local service is running.")
+    return ProviderHealthResponse(status=status, llm_provider=settings.llm_provider, llm_model=settings.llm_model, embedding_provider=settings.embedding_provider, embedding_model=settings.embedding_model, ollama_reachable=reachable, detail=detail)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008

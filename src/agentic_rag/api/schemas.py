@@ -38,6 +38,16 @@ class KnowledgeBaseHealthResponse(BaseModel):
     status: Literal["ready", "needs_reindex", "empty"]
 
 
+class ProviderHealthResponse(BaseModel):
+    status: Literal["ready", "degraded"]
+    llm_provider: str
+    llm_model: str
+    embedding_provider: str
+    embedding_model: str
+    ollama_reachable: bool
+    detail: str
+
+
 class ReindexStaleResponse(BaseModel):
     """Result of refreshing stale knowledge-base sources."""
 
