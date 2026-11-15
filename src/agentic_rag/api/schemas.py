@@ -173,6 +173,15 @@ class EvaluationReportResponse(BaseModel):
     cases: list[EvaluationCaseResponse]
 
 
+class ProviderComparisonResponse(BaseModel):
+    """Quality comparison for two answer-provider configurations."""
+
+    deterministic: dict[str, object]
+    ollama: dict[str, object] | None = None
+    ollama_available: bool
+    detail: str
+
+
 class EvaluationHistoryResponse(BaseModel):
     """A compact historical benchmark result."""
 

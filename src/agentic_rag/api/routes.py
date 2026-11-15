@@ -31,6 +31,7 @@ from agentic_rag.api.schemas import (
     KnowledgeBaseHealthResponse,
     LatencyHistoryResponse,
     LatencySummaryResponse,
+    ProviderComparisonResponse,
     ProviderHealthResponse,
     ReindexStaleResponse,
     SearchRequest,
@@ -40,9 +41,10 @@ from agentic_rag.api.schemas import (
 from agentic_rag.config import Settings, get_settings
 from agentic_rag.conversations.repository import SQLiteConversationRepository
 from agentic_rag.conversations.store import ConversationStore
+from agentic_rag.embeddings.local import LocalHashEmbeddingProvider
 from agentic_rag.embeddings.providers import build_embedding_provider
 from agentic_rag.evaluation.service import EvaluationService
-from agentic_rag.generation.providers import build_answer_model
+from agentic_rag.generation.providers import OllamaAnswerModel, build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 from agentic_rag.metrics import metrics
@@ -516,6 +518,28 @@ def evaluation_history(dataset: str | None = None) -> list[EvaluationHistoryResp
     """Return recent persisted quality-check runs."""
 
     return [EvaluationHistoryResponse(**run) for run in evaluation_repository.recent(dataset)]
+
+
+@router.post("/evaluation/compare-providers", response_model=ProviderComparisonResponse)
+def compare_providers(settings: Settings = Depends(get_settings)) -> ProviderComparisonResponse:  # noqa: B008
+    """Run the sample benchmark with deterministic and Ollama answer generation."""
+
+    ollama_available = False
+    try:
+        ollama_available = httpx.get(f"{settings.llm_base_url.rstrip('/')}/api/tags", timeout=2.0).is_success
+    except httpx.HTTPError:
+        pass
+    with TemporaryDirectory(prefix="atlas-provider-compare-") as temp_dir:
+        indexing = DocumentIndexingService(Path(temp_dir) / "vectors", embedding_provider=LocalHashEmbeddingProvider())
+        indexing.index_file(Path("evaluation/fixtures/policy.md") if Path("evaluation/fixtures/policy.md").is_file() else Path("tests/fixtures/policy.md"))
+        cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))
+        orchestrator = AgentOrchestrator(indexing, minimum_evidence_score=settings.minimum_evidence_score)
+        deterministic = EvaluationService(KnowledgeAssistantService(orchestrator, GroundedAnswerService())).run(cases).as_dict()
+        ollama = None
+        if ollama_available:
+            ollama_model = OllamaAnswerModel(settings.llm_model, settings.llm_base_url, max_retries=settings.llm_max_retries)
+            ollama = EvaluationService(KnowledgeAssistantService(orchestrator, GroundedAnswerService(ollama_model))).run(cases).as_dict()
+    return ProviderComparisonResponse(deterministic=deterministic, ollama=ollama, ollama_available=ollama_available, detail="Comparison completed." if ollama_available else "Ollama is unavailable; deterministic results only.")
 
 
 @router.get("/conversations", response_model=ConversationListResponse)
