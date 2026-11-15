@@ -25,6 +25,7 @@ from agentic_rag.api.schemas import (
     IndexPathRequest,
     IndexResponse,
     KnowledgeBaseHealthResponse,
+    ReindexStaleResponse,
     SearchRequest,
     SearchResponse,
     SearchResultResponse,
@@ -121,6 +122,30 @@ def knowledge_base_health(
         chunk_count=service.vector_store.count(),
         stale_document_count=stale,
         status=status,
+    )
+
+
+@router.post("/documents/reindex-stale", response_model=ReindexStaleResponse)
+def reindex_stale_documents(
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> ReindexStaleResponse:
+    """Re-index changed sources while leaving missing files untouched."""
+
+    reindexed = 0
+    missing = 0
+    for document in document_repository.list_documents():
+        path = Path(document.path)
+        if not path.is_file():
+            missing += 1
+            continue
+        fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
+        if fingerprint != document_repository.get_fingerprint(document.path) or document.path not in service.vector_store.source_paths():
+            service.reindex_file(document.path)
+            reindexed += 1
+    return ReindexStaleResponse(
+        reindexed_count=reindexed,
+        skipped_missing_count=missing,
+        chunk_count=service.vector_store.count(),
     )
 
 

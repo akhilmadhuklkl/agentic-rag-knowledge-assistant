@@ -37,6 +37,14 @@ class KnowledgeBaseHealthResponse(BaseModel):
     status: Literal["ready", "needs_reindex", "empty"]
 
 
+class ReindexStaleResponse(BaseModel):
+    """Result of refreshing stale knowledge-base sources."""
+
+    reindexed_count: int
+    skipped_missing_count: int
+    chunk_count: int
+
+
 class CleanupResponse(BaseModel):
     removed_sources: int
 
