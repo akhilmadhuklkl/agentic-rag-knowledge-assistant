@@ -63,6 +63,14 @@ class LatencyHistoryResponse(BaseModel):
     created_at: str
 
 
+class LatencySummaryResponse(BaseModel):
+    sample_count: int
+    fastest_ms: float | None
+    slowest_ms: float | None
+    average_ms: float | None
+    p95_ms: float | None
+
+
 class CleanupResponse(BaseModel):
     removed_sources: int
 

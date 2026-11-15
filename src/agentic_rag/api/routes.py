@@ -1,6 +1,7 @@
 """Knowledge-base API routes."""
 
 import hashlib
+import math
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -28,6 +29,7 @@ from agentic_rag.api.schemas import (
     IngestionActivityResponse,
     KnowledgeBaseHealthResponse,
     LatencyHistoryResponse,
+    LatencySummaryResponse,
     ReindexStaleResponse,
     SearchRequest,
     SearchResponse,
@@ -417,6 +419,17 @@ def latency_history() -> list[LatencyHistoryResponse]:
     """Return recent response timing samples."""
 
     return [LatencyHistoryResponse(**sample) for sample in latency_repository.recent()]
+
+
+@router.get("/metrics/latency-summary", response_model=LatencySummaryResponse)
+def latency_summary() -> LatencySummaryResponse:
+    """Return summary statistics for recent response timings."""
+
+    values = sorted(float(sample["duration_ms"]) for sample in latency_repository.recent(100))
+    if not values:
+        return LatencySummaryResponse(sample_count=0, fastest_ms=None, slowest_ms=None, average_ms=None, p95_ms=None)
+    p95_index = min(len(values) - 1, max(0, math.ceil(len(values) * 0.95) - 1))
+    return LatencySummaryResponse(sample_count=len(values), fastest_ms=round(values[0], 2), slowest_ms=round(values[-1], 2), average_ms=round(sum(values) / len(values), 2), p95_ms=round(values[p95_index], 2))
 
 
 @router.post("/feedback")
