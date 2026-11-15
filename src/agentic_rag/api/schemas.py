@@ -70,6 +70,7 @@ class LatencySummaryResponse(BaseModel):
     average_ms: float | None
     p95_ms: float | None
     stage_averages_ms: dict[str, float] = Field(default_factory=dict)
+    recommendation: str | None = None
 
 
 class CleanupResponse(BaseModel):

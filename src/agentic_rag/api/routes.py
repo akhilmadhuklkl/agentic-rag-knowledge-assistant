@@ -431,7 +431,9 @@ def latency_summary() -> LatencySummaryResponse:
     p95_index = min(len(values) - 1, max(0, math.ceil(len(values) * 0.95) - 1))
     samples = latency_repository.recent(100)
     stage_averages = {stage: round(sum(float(sample[f"{stage}_ms"]) for sample in samples if sample[f"{stage}_ms"] is not None) / max(1, sum(sample[f"{stage}_ms"] is not None for sample in samples)), 2) for stage in ("retrieval", "generation", "verification")}
-    return LatencySummaryResponse(sample_count=len(values), fastest_ms=round(values[0], 2), slowest_ms=round(values[-1], 2), average_ms=round(sum(values) / len(values), 2), p95_ms=round(values[p95_index], 2), stage_averages_ms=stage_averages)
+    bottleneck = max(stage_averages, key=stage_averages.get)
+    recommendations = {"retrieval": "Retrieval is the main bottleneck. Try fewer sources or a file-type filter to reduce search work.", "generation": "Generation is the main bottleneck. Try the Local latency profile or a smaller local model.", "verification": "Verification is the main bottleneck. Review verification logs and check for unusually large evidence sets."}
+    return LatencySummaryResponse(sample_count=len(values), fastest_ms=round(values[0], 2), slowest_ms=round(values[-1], 2), average_ms=round(sum(values) / len(values), 2), p95_ms=round(values[p95_index], 2), stage_averages_ms=stage_averages, recommendation=recommendations[bottleneck])
 
 
 @router.post("/feedback")
