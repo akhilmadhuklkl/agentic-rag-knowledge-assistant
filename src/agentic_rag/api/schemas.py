@@ -43,6 +43,8 @@ class ReindexStaleResponse(BaseModel):
     reindexed_count: int
     skipped_missing_count: int
     chunk_count: int
+    processed_documents: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
 
 
 class CleanupResponse(BaseModel):

@@ -133,6 +133,8 @@ def reindex_stale_documents(
 
     reindexed = 0
     missing = 0
+    processed: list[str] = []
+    errors: list[str] = []
     for document in document_repository.list_documents():
         path = Path(document.path)
         if not path.is_file():
@@ -140,12 +142,18 @@ def reindex_stale_documents(
             continue
         fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
         if fingerprint != document_repository.get_fingerprint(document.path) or document.path not in service.vector_store.source_paths():
-            service.reindex_file(document.path)
-            reindexed += 1
+            try:
+                service.reindex_file(document.path)
+                processed.append(document.name)
+                reindexed += 1
+            except (OSError, ValueError, RuntimeError) as error:
+                errors.append(f"{document.name}: {error}")
     return ReindexStaleResponse(
         reindexed_count=reindexed,
         skipped_missing_count=missing,
         chunk_count=service.vector_store.count(),
+        processed_documents=processed,
+        errors=errors,
     )
 
 
