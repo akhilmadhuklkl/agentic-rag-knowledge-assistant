@@ -48,6 +48,7 @@ from agentic_rag.generation.providers import OllamaAnswerModel, build_answer_mod
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 from agentic_rag.metrics import metrics
+from agentic_rag.observability import log_event
 from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.storage.repository import (
     SQLiteDocumentRepository,
@@ -407,6 +408,7 @@ def ask(
     semantic_weight = _search_mode_weight(request.search_mode, settings.retrieval_semantic_weight)
     response = assistant.ask(contextual_query, top_k=request.top_k, semantic_weight=semantic_weight, file_type=request.file_type)
     latency_repository.record(response.duration_ms, request.latency_profile, response.stage_timings)
+    log_event("assistant_request_completed", duration_ms=response.duration_ms, verified=response.verified, refusal=response.refusal, attempts=response.attempts, latency_profile=request.latency_profile)
     conversation_store.append(conversation_id, request.query, response.answer)
     threshold = request.confidence_threshold if request.confidence_threshold is not None else settings.confidence_warning_threshold
     confidence_warning = bool(response.citations) and min(citation.confidence for citation in response.citations) < threshold
