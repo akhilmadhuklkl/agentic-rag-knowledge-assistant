@@ -38,6 +38,9 @@ class EvaluationReport:
     citation_hits: int
     correct_refusals: int
     cases: list["EvaluationCaseResult"]
+    answerable_cases: int
+    refusal_cases: int
+    refusal_case_correct: int
 
     @property
     def retrieval_hit_rate(self) -> float:
@@ -55,6 +58,18 @@ class EvaluationReport:
     def refusal_accuracy(self) -> float:
         return self._rate(self.correct_refusals)
 
+    @property
+    def answerable_retrieval_rate(self) -> float:
+        return self.retrieval_hits / self.answerable_cases if self.answerable_cases else 0.0
+
+    @property
+    def answerable_citation_accuracy(self) -> float:
+        return self.citation_hits / self.answerable_cases if self.answerable_cases else 0.0
+
+    @property
+    def refusal_case_accuracy(self) -> float:
+        return self.refusal_case_correct / self.refusal_cases if self.refusal_cases else 0.0
+
     def as_dict(self) -> dict[str, int | float | list[dict[str, object]]]:
         """Return report values in an API- and JSON-friendly shape."""
 
@@ -68,6 +83,12 @@ class EvaluationReport:
             "answer_match_rate": round(self.answer_match_rate, 4),
             "citation_accuracy": round(self.citation_accuracy, 4),
             "refusal_accuracy": round(self.refusal_accuracy, 4),
+            "answerable_cases": self.answerable_cases,
+            "refusal_cases": self.refusal_cases,
+            "answerable_retrieval_rate": round(self.answerable_retrieval_rate, 4),
+            "answerable_citation_accuracy": round(self.answerable_citation_accuracy, 4),
+            "refusal_case_accuracy": round(self.refusal_case_accuracy, 4),
+            "refusal_case_correct": self.refusal_case_correct,
             "cases": [case.as_dict() for case in self.cases],
         }
 
@@ -107,7 +128,9 @@ class EvaluationService:
     def run(self, cases: list[EvaluationCase]) -> EvaluationReport:
         """Run all cases and calculate simple quality metrics."""
 
-        retrieval_hits = answer_matches = citation_hits = correct_refusals = 0
+        retrieval_hits = answer_matches = citation_hits = correct_refusals = refusal_case_correct = 0
+        answerable_cases = sum(case.expected_source is not None for case in cases)
+        refusal_cases = sum(case.expected_refusal for case in cases)
         case_results: list[EvaluationCaseResult] = []
         for case in cases:
             response = self.assistant.ask(case.question)
@@ -124,6 +147,8 @@ class EvaluationService:
                 answer_matches += 1
             if refusal_correct:
                 correct_refusals += 1
+                if case.expected_refusal:
+                    refusal_case_correct += 1
             case_results.append(EvaluationCaseResult(case.question, case.expected_source, source_names, retrieval_hit, answer_match, citation_hit, refusal_correct))
         return EvaluationReport(
             total_cases=len(cases),
@@ -132,6 +157,9 @@ class EvaluationService:
             citation_hits=citation_hits,
             correct_refusals=correct_refusals,
             cases=case_results,
+            answerable_cases=answerable_cases,
+            refusal_cases=refusal_cases,
+            refusal_case_correct=refusal_case_correct,
         )
 
 

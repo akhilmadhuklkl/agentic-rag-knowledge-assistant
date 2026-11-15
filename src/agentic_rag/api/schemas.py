@@ -171,6 +171,12 @@ class EvaluationReportResponse(BaseModel):
     citation_accuracy: float
     refusal_accuracy: float
     cases: list[EvaluationCaseResponse]
+    answerable_cases: int = 0
+    refusal_cases: int = 0
+    answerable_retrieval_rate: float = 0.0
+    answerable_citation_accuracy: float = 0.0
+    refusal_case_accuracy: float = 0.0
+    refusal_case_correct: int = 0
 
 
 class ProviderComparisonResponse(BaseModel):
