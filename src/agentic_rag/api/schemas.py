@@ -199,6 +199,9 @@ class EvaluationHistoryResponse(BaseModel):
     answer_match_rate: float
     citation_accuracy: float
     refusal_accuracy: float
+    answerable_retrieval_rate: float = 0.0
+    answerable_citation_accuracy: float = 0.0
+    refusal_case_accuracy: float = 0.0
     created_at: str
 
 

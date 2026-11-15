@@ -104,16 +104,20 @@ class SQLiteEvaluationRepository:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.execute("CREATE TABLE IF NOT EXISTS evaluation_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, dataset TEXT NOT NULL, total_cases INTEGER NOT NULL, retrieval_hit_rate REAL NOT NULL, answer_match_rate REAL NOT NULL, citation_accuracy REAL NOT NULL, refusal_accuracy REAL NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(evaluation_runs)").fetchall()}
+            for column in ("answerable_retrieval_rate", "answerable_citation_accuracy", "refusal_case_accuracy"):
+                if column not in columns:
+                    connection.execute(f"ALTER TABLE evaluation_runs ADD COLUMN {column} REAL NOT NULL DEFAULT 0")
 
     def record(self, dataset: str, report: dict[str, object]) -> None:
         with self._connect() as connection:
             connection.execute(
-                "INSERT INTO evaluation_runs (dataset, total_cases, retrieval_hit_rate, answer_match_rate, citation_accuracy, refusal_accuracy) VALUES (?, ?, ?, ?, ?, ?)",
-                (dataset, report["total_cases"], report["retrieval_hit_rate"], report["answer_match_rate"], report["citation_accuracy"], report["refusal_accuracy"]),
+                "INSERT INTO evaluation_runs (dataset, total_cases, retrieval_hit_rate, answer_match_rate, citation_accuracy, refusal_accuracy, answerable_retrieval_rate, answerable_citation_accuracy, refusal_case_accuracy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (dataset, report["total_cases"], report["retrieval_hit_rate"], report["answer_match_rate"], report["citation_accuracy"], report["refusal_accuracy"], report["answerable_retrieval_rate"], report["answerable_citation_accuracy"], report["refusal_case_accuracy"]),
             )
 
     def recent(self, dataset: str | None = None, limit: int = 10) -> list[dict[str, object]]:
-        query = "SELECT dataset, total_cases, retrieval_hit_rate, answer_match_rate, citation_accuracy, refusal_accuracy, created_at FROM evaluation_runs"
+        query = "SELECT dataset, total_cases, retrieval_hit_rate, answer_match_rate, citation_accuracy, refusal_accuracy, answerable_retrieval_rate, answerable_citation_accuracy, refusal_case_accuracy, created_at FROM evaluation_runs"
         values: tuple[object, ...] = ()
         if dataset:
             query += " WHERE dataset = ?"
@@ -122,7 +126,7 @@ class SQLiteEvaluationRepository:
         values += (limit,)
         with self._connect() as connection:
             rows = connection.execute(query, values).fetchall()
-        keys = ("dataset", "total_cases", "retrieval_hit_rate", "answer_match_rate", "citation_accuracy", "refusal_accuracy", "created_at")
+        keys = ("dataset", "total_cases", "retrieval_hit_rate", "answer_match_rate", "citation_accuracy", "refusal_accuracy", "answerable_retrieval_rate", "answerable_citation_accuracy", "refusal_case_accuracy", "created_at")
         return [dict(zip(keys, row, strict=True)) for row in rows]
 
     def _connect(self) -> sqlite3.Connection:
