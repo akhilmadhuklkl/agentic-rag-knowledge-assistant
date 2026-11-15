@@ -41,6 +41,8 @@ python scripts/smoke_test.py
 
 API documentation is available at `http://127.0.0.1:8765/docs`.
 
+The product UI is available at `http://127.0.0.1:8765/app/`. The main product frontend is served by FastAPI; the Streamlit interface below is retained as a backup.
+
 ## Optional Streamlit backup UI
 
 ```powershell
@@ -79,6 +81,8 @@ python -m pytest -q
 ruff check .
 ```
 
+GitHub Actions runs the same checks on pushes to `main` and pull requests: tests, Ruff lint, frontend JavaScript syntax validation, and `git diff --check`.
+
 Evaluation cases are in [evaluation/sample_cases.json](evaluation/sample_cases.json).
 The multi-document benchmark is in [evaluation/multi_document_cases.json](evaluation/multi_document_cases.json), with isolated fixtures under [evaluation/fixtures](evaluation/fixtures).
 
@@ -88,6 +92,7 @@ The multi-document benchmark is in [evaluation/multi_document_cases.json](evalua
 - [Architecture](docs/architecture.md)
 - [API guide](docs/api.md)
 - [Streamlit backup UI](docs/streamlit-backup.md)
+- [Development and operations guide](docs/development.md)
 
 ## Deployment
 
