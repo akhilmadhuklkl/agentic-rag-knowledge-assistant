@@ -144,6 +144,10 @@ class EvaluationRunRequest(BaseModel):
     """Select the isolated benchmark corpus to evaluate."""
 
     dataset: Literal["sample", "multi_document"] = "sample"
+    retrieval_threshold: float | None = Field(default=None, ge=0, le=1)
+    citation_threshold: float | None = Field(default=None, ge=0, le=1)
+    answer_threshold: float | None = Field(default=None, ge=0, le=1)
+    refusal_threshold: float | None = Field(default=None, ge=0, le=1)
 
 
 class EvaluationCaseResponse(BaseModel):
