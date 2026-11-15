@@ -16,6 +16,7 @@ from agentic_rag.api.schemas import (
     ConversationTurnResponse,
     DocumentListResponse,
     DocumentResponse,
+    EvaluationReportResponse,
     FeedbackRequest,
     IndexPathRequest,
     IndexResponse,
@@ -27,6 +28,7 @@ from agentic_rag.config import Settings, get_settings
 from agentic_rag.conversations.repository import SQLiteConversationRepository
 from agentic_rag.conversations.store import ConversationStore
 from agentic_rag.embeddings.providers import build_embedding_provider
+from agentic_rag.evaluation.service import EvaluationService
 from agentic_rag.generation.providers import build_answer_model
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
@@ -243,6 +245,22 @@ def feedback_summary() -> dict[str, int]:
     """Return persisted answer-quality feedback totals."""
 
     return feedback_repository.summary()
+
+
+@router.post("/evaluation/run", response_model=EvaluationReportResponse)
+def run_evaluation(
+    service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> EvaluationReportResponse:
+    """Run the checked-in evaluation dataset against the current assistant."""
+
+    settings = get_settings()
+    assistant = KnowledgeAssistantService(
+        AgentOrchestrator(service),
+        GroundedAnswerService(build_answer_model(settings)),
+    )
+    cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))
+    report = EvaluationService(assistant).run(cases)
+    return EvaluationReportResponse(**report.as_dict())
 
 
 @router.get("/conversations", response_model=ConversationListResponse)

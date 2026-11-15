@@ -80,6 +80,20 @@ class FeedbackRequest(BaseModel):
     conversation_id: str | None = Field(default=None, max_length=64)
 
 
+class EvaluationReportResponse(BaseModel):
+    """Quality report from the repeatable evaluation dataset."""
+
+    total_cases: int
+    retrieval_hits: int
+    answer_matches: int
+    citation_hits: int
+    correct_refusals: int
+    retrieval_hit_rate: float
+    answer_match_rate: float
+    citation_accuracy: float
+    refusal_accuracy: float
+
+
 class CitationResponse(BaseModel):
     """Citation returned with a grounded answer."""
 

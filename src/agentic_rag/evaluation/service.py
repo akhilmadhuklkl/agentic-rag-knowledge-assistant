@@ -39,6 +39,21 @@ class EvaluationReport:
     def refusal_accuracy(self) -> float:
         return self._rate(self.correct_refusals)
 
+    def as_dict(self) -> dict[str, int | float]:
+        """Return report values in an API- and JSON-friendly shape."""
+
+        return {
+            "total_cases": self.total_cases,
+            "retrieval_hits": self.retrieval_hits,
+            "answer_matches": self.answer_matches,
+            "citation_hits": self.citation_hits,
+            "correct_refusals": self.correct_refusals,
+            "retrieval_hit_rate": round(self.retrieval_hit_rate, 4),
+            "answer_match_rate": round(self.answer_match_rate, 4),
+            "citation_accuracy": round(self.citation_accuracy, 4),
+            "refusal_accuracy": round(self.refusal_accuracy, 4),
+        }
+
     def _rate(self, value: int) -> float:
         return value / self.total_cases if self.total_cases else 0.0
 

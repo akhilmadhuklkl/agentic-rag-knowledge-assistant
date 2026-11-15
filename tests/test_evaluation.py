@@ -30,3 +30,7 @@ def test_evaluation_loads_cases_and_calculates_metrics() -> None:
     assert report.answer_match_rate == 1.0
     assert report.citation_accuracy == 0.5
     assert report.refusal_accuracy == 1.0
+
+    values = report.as_dict()
+    assert values["retrieval_hit_rate"] == 0.5
+    assert values["citation_accuracy"] == 0.5
