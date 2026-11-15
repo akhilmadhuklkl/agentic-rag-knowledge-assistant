@@ -25,10 +25,10 @@ def test_evaluation_loads_cases_and_calculates_metrics() -> None:
 
     report = evaluator.run(cases)
 
-    assert report.total_cases == 2
-    assert report.retrieval_hit_rate == 0.5
-    assert report.answer_match_rate == 1.0
-    assert report.citation_accuracy == 0.5
+    assert report.total_cases == 3
+    assert report.retrieval_hit_rate == 2 / 3
+    assert report.answer_match_rate == 2 / 3
+    assert report.citation_accuracy == 2 / 3
     assert report.refusal_accuracy == 1.0
 
     values = report.as_dict()

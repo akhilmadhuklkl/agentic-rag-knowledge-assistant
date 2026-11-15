@@ -8,5 +8,11 @@
   {
     "question": "What is the quantum spaceship launch protocol?",
     "expected_refusal": true
+  },
+  {
+    "question": "How long do I have to request a refund?",
+    "expected_source": "policy.md",
+    "expected_answer_contains": "thirty days",
+    "expected_refusal": false
   }
 ]
