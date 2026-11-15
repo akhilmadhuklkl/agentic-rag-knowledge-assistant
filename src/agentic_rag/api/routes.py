@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi.responses import FileResponse, PlainTextResponse
 
 from agentic_rag.agents.orchestrator import AgentOrchestrator
 from agentic_rag.api.schemas import (
@@ -188,6 +189,40 @@ def delete_document(
     indexing.vector_store.delete_source(document.path)
     ingestion_repository.record("deleted", document.name, "Removed document and indexed knowledge")
     return DocumentResponse(**document.__dict__)
+
+
+def _stored_document_path(name: str, storage: DocumentStorageService) -> Path:
+    """Resolve a stored filename without allowing path traversal."""
+
+    safe_name = storage._safe_filename(name)
+    path = (storage.root / safe_name).resolve()
+    if not path.is_relative_to(storage.root.resolve()) or not path.is_file():
+        raise FileNotFoundError(name)
+    return path
+
+
+@router.get("/documents/{name}/download")
+def download_document(
+    name: str,
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+) -> FileResponse:
+    """Download an original stored document."""
+
+    path = _stored_document_path(name, storage)
+    return FileResponse(path, filename=path.name, media_type="application/octet-stream")
+
+
+@router.get("/documents/{name}/preview")
+def preview_document(
+    name: str,
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+) -> PlainTextResponse:
+    """Return a safe text preview for Markdown and text documents."""
+
+    path = _stored_document_path(name, storage)
+    if path.suffix.lower() not in {".md", ".markdown", ".txt"}:
+        raise ValueError("Preview is available for Markdown and text documents; download the PDF to view it.")
+    return PlainTextResponse(path.read_text(encoding="utf-8"))
 
 
 @router.post("/index/file", response_model=IndexResponse)
