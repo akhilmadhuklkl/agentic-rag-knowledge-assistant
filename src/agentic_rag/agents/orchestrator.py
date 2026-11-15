@@ -54,12 +54,32 @@ class AgentOrchestrator:
             return OrchestrationResult(plan, [], 0, True)
 
         results = self._reliable_results(plan.query, top_k, semantic_weight, file_type)
+        if " and " in plan.query.lower():
+            results = self._merge_multi_query_results(plan.query, results, top_k, semantic_weight, file_type)
         attempts = 1
         if not results and attempts < plan.max_attempts:
             refined_query = self._refine_query(plan.query)
             results = self._reliable_results(refined_query, top_k, semantic_weight, file_type)
             attempts += 1
         return OrchestrationResult(plan, results, attempts, not results)
+
+    def _merge_multi_query_results(
+        self,
+        question: str,
+        initial: list[RetrievalResult],
+        top_k: int,
+        semantic_weight: float | None,
+        file_type: str | None,
+    ) -> list[RetrievalResult]:
+        """Collect evidence for each conjunction clause and remove duplicates."""
+
+        clauses = [part.strip(" ,") for part in question.split(" and ") if len(part.split()) >= 3]
+        merged = {result.chunk.chunk_id: result for result in initial}
+        for clause in clauses:
+            clause_results = self.indexing_service.search(clause, top_k=2, semantic_weight=semantic_weight, file_type=file_type)
+            for result in clause_results:
+                merged.setdefault(result.chunk.chunk_id, result)
+        return sorted(merged.values(), key=lambda result: result.score, reverse=True)[:top_k]
 
     def _reliable_results(self, query: str, top_k: int, semantic_weight: float | None = None, file_type: str | None = None) -> list[RetrievalResult]:
         results = self.indexing_service.search(query, top_k=top_k, semantic_weight=semantic_weight, file_type=file_type)

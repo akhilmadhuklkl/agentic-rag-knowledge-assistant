@@ -13,9 +13,16 @@ class EvaluationCase:
     question: str
     category: str = "general"
     expected_source: str | None = None
+    expected_sources: list[str] | None = None
     expected_answer_contains: str | None = None
     expected_answer_keywords: list[str] | None = None
     expected_refusal: bool = False
+
+    @property
+    def required_sources(self) -> list[str]:
+        """Return all sources required to answer this case."""
+
+        return self.expected_sources or ([self.expected_source] if self.expected_source else [])
 
     def matches_answer(self, answer: str) -> bool:
         """Match meaning-bearing concepts without requiring one exact sentence."""
@@ -134,7 +141,7 @@ class EvaluationService:
 
         retrieval_hits = answer_matches = citation_hits = correct_refusals = refusal_case_correct = 0
         category_totals: dict[str, dict[str, int]] = {}
-        answerable_cases = sum(case.expected_source is not None for case in cases)
+        answerable_cases = sum(bool(case.required_sources) for case in cases)
         refusal_cases = sum(case.expected_refusal for case in cases)
         case_results: list[EvaluationCaseResult] = []
         for case in cases:
@@ -144,7 +151,7 @@ class EvaluationService:
             category["refusal_cases"] += int(case.expected_refusal)
             response = self.assistant.ask(case.question)
             source_names = sorted({citation.source_name for citation in response.citations})
-            retrieval_hit = case.expected_source is not None and case.expected_source in source_names
+            retrieval_hit = bool(case.required_sources) and all(source in source_names for source in case.required_sources)
             citation_hit = retrieval_hit
             answer_match = case.matches_answer(response.answer)
             refusal_correct = response.refusal is case.expected_refusal
@@ -161,7 +168,8 @@ class EvaluationService:
                 if case.expected_refusal:
                     refusal_case_correct += 1
                     category["refusal_correct"] += 1
-            case_results.append(EvaluationCaseResult(case.question, case.category, case.expected_source, source_names, retrieval_hit, answer_match, citation_hit, refusal_correct))
+            expected_source = ", ".join(case.required_sources) if case.required_sources else None
+            case_results.append(EvaluationCaseResult(case.question, case.category, expected_source, source_names, retrieval_hit, answer_match, citation_hit, refusal_correct))
         category_metrics = {
             name: {
                 **values,

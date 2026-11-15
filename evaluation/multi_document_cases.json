@@ -84,6 +84,13 @@
     "expected_refusal": false
   },
   {
+    "question": "What security controls apply to privileged access, and when must a new engineer complete security training?",
+    "category": "multi_hop_security",
+    "expected_sources": ["access_policy.md", "onboarding_guide.md"],
+    "expected_answer_keywords": ["multi.factor", "manager", "security", "training", "first week"],
+    "expected_refusal": false
+  },
+  {
     "question": "What is the interplanetary asteroid evacuation procedure?",
     "category": "refusal",
     "expected_refusal": true

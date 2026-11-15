@@ -33,7 +33,7 @@ Uploaded PDF, Markdown, and text files are stored under the configured document 
 
 The evaluation panel measures retrieval, citations, answer quality, refusal behavior, category scores, historical trends, and threshold status. Thresholds can be adjusted in the Quality Gates controls for the next run.
 
-Benchmark data lives in `evaluation/`. Add a case with a precise `expected_source`, answer keywords, `expected_refusal`, and optional `category`. Keep refusal cases clearly outside the indexed knowledge so they test grounding rather than vocabulary overlap.
+Benchmark data lives in `evaluation/`. Add a case with a precise `expected_source` or an `expected_sources` list for multi-hop questions, answer keywords, `expected_refusal`, and an optional `category`. Keep refusal cases clearly outside the indexed knowledge so they test grounding rather than vocabulary overlap. Multi-hop questions joined by “and” are decomposed into clause searches and their evidence is merged before answer generation.
 
 ## Testing before a commit
 
