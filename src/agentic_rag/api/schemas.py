@@ -19,6 +19,7 @@ class DocumentResponse(BaseModel):
     size_bytes: int
     file_type: str
     status: Literal["indexed", "stale", "missing", "unknown"] = "unknown"
+    upload_date: str | None = None
 
 
 class DocumentListResponse(BaseModel):

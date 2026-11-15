@@ -101,7 +101,7 @@ def _document_response(document: object, service: DocumentIndexingService) -> Do
     else:
         fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
         status = "indexed" if fingerprint == document_repository.get_fingerprint(document.path) else "stale"
-    return DocumentResponse(**document.__dict__, status=status)
+    return DocumentResponse(**document.__dict__, status=status, upload_date=document_repository.get_created_at(document.name))
 
 
 @router.get("/documents/health", response_model=KnowledgeBaseHealthResponse)

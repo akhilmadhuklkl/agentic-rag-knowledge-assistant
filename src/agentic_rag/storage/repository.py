@@ -14,6 +14,10 @@ class SQLiteDocumentRepository:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.execute("CREATE TABLE IF NOT EXISTS documents (name TEXT PRIMARY KEY, path TEXT NOT NULL, size_bytes INTEGER NOT NULL, file_type TEXT NOT NULL)")
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(documents)").fetchall()}
+            if "created_at" not in columns:
+                connection.execute("ALTER TABLE documents ADD COLUMN created_at TEXT")
+                connection.execute("UPDATE documents SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
             connection.execute("CREATE TABLE IF NOT EXISTS index_manifest (source_path TEXT PRIMARY KEY, fingerprint TEXT NOT NULL)")
 
     def upsert_document(self, document: StoredDocument) -> None:
@@ -32,6 +36,11 @@ class SQLiteDocumentRepository:
     def get_fingerprint(self, source_path: str) -> str | None:
         with self._connect() as connection:
             row = connection.execute("SELECT fingerprint FROM index_manifest WHERE source_path = ?", (source_path,)).fetchone()
+        return row[0] if row else None
+
+    def get_created_at(self, name: str) -> str | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT created_at FROM documents WHERE name = ?", (name,)).fetchone()
         return row[0] if row else None
 
     def set_fingerprint(self, source_path: str, fingerprint: str) -> None:
