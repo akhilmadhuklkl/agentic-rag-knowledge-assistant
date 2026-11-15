@@ -387,6 +387,12 @@ def ask(
         confidence_warning=confidence_warning,
         confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
         retrieval_diagnostics={"query": contextual_query, "search_mode": request.search_mode, "top_k": request.top_k, "file_type": request.file_type or "all"},
+        agent_trace=[
+            {"stage": "Planning", "status": "completed", "detail": response.action.value},
+            {"stage": "Retrieval", "status": "completed" if response.citations else "no_evidence", "detail": f"{len(response.citations)} source(s), {response.attempts} attempt(s)"},
+            {"stage": "Generation", "status": "refused" if response.refusal else "completed", "detail": "Grounded response produced" if not response.refusal else "Insufficient reliable evidence"},
+            {"stage": "Verification", "status": "completed" if response.verified else "review", "detail": response.verification_reason},
+        ],
     )
 
 

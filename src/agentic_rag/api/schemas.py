@@ -192,6 +192,7 @@ class AskResponse(AnswerResponse):
     attempts: int
     duration_ms: float
     conversation_id: str
+    agent_trace: list[dict[str, object]] = Field(default_factory=list)
 
 
 class ConversationTurnResponse(BaseModel):
