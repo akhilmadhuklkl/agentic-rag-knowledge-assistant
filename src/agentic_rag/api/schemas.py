@@ -150,6 +150,7 @@ class EvaluationCaseResponse(BaseModel):
     """Result details for one quality benchmark case."""
 
     question: str
+    category: str = "general"
     expected_source: str | None
     cited_sources: list[str]
     retrieval_hit: bool
@@ -177,6 +178,7 @@ class EvaluationReportResponse(BaseModel):
     answerable_citation_accuracy: float = 0.0
     refusal_case_accuracy: float = 0.0
     refusal_case_correct: int = 0
+    category_metrics: dict[str, dict[str, int | float]] = Field(default_factory=dict)
 
 
 class ProviderComparisonResponse(BaseModel):

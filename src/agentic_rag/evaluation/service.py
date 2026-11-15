@@ -11,6 +11,7 @@ from agentic_rag.workflow.service import KnowledgeAssistantService
 @dataclass(frozen=True)
 class EvaluationCase:
     question: str
+    category: str = "general"
     expected_source: str | None = None
     expected_answer_contains: str | None = None
     expected_answer_keywords: list[str] | None = None
@@ -41,6 +42,7 @@ class EvaluationReport:
     answerable_cases: int
     refusal_cases: int
     refusal_case_correct: int
+    category_metrics: dict[str, dict[str, int | float]]
 
     @property
     def retrieval_hit_rate(self) -> float:
@@ -89,6 +91,7 @@ class EvaluationReport:
             "answerable_citation_accuracy": round(self.answerable_citation_accuracy, 4),
             "refusal_case_accuracy": round(self.refusal_case_accuracy, 4),
             "refusal_case_correct": self.refusal_case_correct,
+            "category_metrics": self.category_metrics,
             "cases": [case.as_dict() for case in self.cases],
         }
 
@@ -101,6 +104,7 @@ class EvaluationCaseResult:
     """Explain the outcome of one benchmark question."""
 
     question: str
+    category: str
     expected_source: str | None
     cited_sources: list[str]
     retrieval_hit: bool
@@ -129,10 +133,15 @@ class EvaluationService:
         """Run all cases and calculate simple quality metrics."""
 
         retrieval_hits = answer_matches = citation_hits = correct_refusals = refusal_case_correct = 0
+        category_totals: dict[str, dict[str, int]] = {}
         answerable_cases = sum(case.expected_source is not None for case in cases)
         refusal_cases = sum(case.expected_refusal for case in cases)
         case_results: list[EvaluationCaseResult] = []
         for case in cases:
+            category_totals.setdefault(case.category, {"cases": 0, "retrieval_hits": 0, "answer_matches": 0, "refusal_cases": 0, "refusal_correct": 0})
+            category = category_totals[case.category]
+            category["cases"] += 1
+            category["refusal_cases"] += int(case.expected_refusal)
             response = self.assistant.ask(case.question)
             source_names = sorted({citation.source_name for citation in response.citations})
             retrieval_hit = case.expected_source is not None and case.expected_source in source_names
@@ -141,15 +150,27 @@ class EvaluationService:
             refusal_correct = response.refusal is case.expected_refusal
             if retrieval_hit:
                 retrieval_hits += 1
+                category["retrieval_hits"] += 1
             if citation_hit:
                 citation_hits += 1
             if answer_match:
                 answer_matches += 1
+                category["answer_matches"] += 1
             if refusal_correct:
                 correct_refusals += 1
                 if case.expected_refusal:
                     refusal_case_correct += 1
-            case_results.append(EvaluationCaseResult(case.question, case.expected_source, source_names, retrieval_hit, answer_match, citation_hit, refusal_correct))
+                    category["refusal_correct"] += 1
+            case_results.append(EvaluationCaseResult(case.question, case.category, case.expected_source, source_names, retrieval_hit, answer_match, citation_hit, refusal_correct))
+        category_metrics = {
+            name: {
+                **values,
+                "retrieval_rate": round(values["retrieval_hits"] / values["cases"], 4),
+                "answer_rate": round(values["answer_matches"] / values["cases"], 4),
+                "refusal_rate": round(values["refusal_correct"] / values["refusal_cases"], 4) if values["refusal_cases"] else 0.0,
+            }
+            for name, values in category_totals.items()
+        }
         return EvaluationReport(
             total_cases=len(cases),
             retrieval_hits=retrieval_hits,
@@ -160,6 +181,7 @@ class EvaluationService:
             answerable_cases=answerable_cases,
             refusal_cases=refusal_cases,
             refusal_case_correct=refusal_case_correct,
+            category_metrics=category_metrics,
         )
 
 
