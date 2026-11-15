@@ -19,6 +19,17 @@ def build_evaluator() -> EvaluationService:
     return EvaluationService(assistant)
 
 
+def build_multi_document_evaluator() -> EvaluationService:
+    store_path = RUNTIME / "multi-document-evaluation.json"
+    store_path.unlink(missing_ok=True)
+    service = DocumentIndexingService(store_path)
+    fixtures = Path(__file__).parents[1] / "evaluation" / "fixtures"
+    for document in sorted(fixtures.iterdir()):
+        service.index_file(document)
+    assistant = KnowledgeAssistantService(AgentOrchestrator(service), GroundedAnswerService())
+    return EvaluationService(assistant)
+
+
 def test_evaluation_loads_cases_and_calculates_metrics() -> None:
     evaluator = build_evaluator()
     cases = evaluator.load_cases(Path(__file__).parents[1] / "evaluation" / "sample_cases.json")
@@ -45,3 +56,18 @@ def test_evaluation_accepts_equivalent_answer_wording() -> None:
     assert case.matches_answer("Refund requests are accepted within 30 days.")
     assert case.matches_answer("The refund policy allows requests within thirty days.")
     assert not case.matches_answer("Refund requests are accepted within 14 days.")
+
+
+def test_multi_document_benchmark_selects_sources_and_refuses_unknown_topics() -> None:
+    evaluator = build_multi_document_evaluator()
+    cases = evaluator.load_cases(
+        Path(__file__).parents[1] / "evaluation" / "multi_document_cases.json"
+    )
+
+    report = evaluator.run(cases)
+
+    assert report.total_cases == 3
+    assert report.retrieval_hits == 2
+    assert report.answer_matches == 3
+    assert report.citation_hits == 2
+    assert report.correct_refusals == 3

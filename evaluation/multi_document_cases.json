@@ -1,0 +1,18 @@
+[
+  {
+    "question": "How often are access reviews performed?",
+    "expected_source": "access_policy.md",
+    "expected_answer_keywords": ["access", "90|ninety", "days"],
+    "expected_refusal": false
+  },
+  {
+    "question": "When must a new engineer complete security training?",
+    "expected_source": "onboarding_guide.md",
+    "expected_answer_keywords": ["security", "training", "first week"],
+    "expected_refusal": false
+  },
+  {
+    "question": "What is the interplanetary asteroid evacuation procedure?",
+    "expected_refusal": true
+  }
+]

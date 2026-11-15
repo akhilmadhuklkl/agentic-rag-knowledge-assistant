@@ -80,6 +80,7 @@ ruff check .
 ```
 
 Evaluation cases are in [evaluation/sample_cases.json](evaluation/sample_cases.json).
+The multi-document benchmark is in [evaluation/multi_document_cases.json](evaluation/multi_document_cases.json), with isolated fixtures under [evaluation/fixtures](evaluation/fixtures).
 
 ## Documentation
 
