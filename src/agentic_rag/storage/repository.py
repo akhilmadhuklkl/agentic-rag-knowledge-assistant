@@ -85,3 +85,36 @@ class SQLiteFeedbackRepository:
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)
+
+
+class SQLiteEvaluationRepository:
+    """Persist compact benchmark results for trend comparisons."""
+
+    def __init__(self, path: str | Path = "data/assistant.db") -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.execute("CREATE TABLE IF NOT EXISTS evaluation_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, dataset TEXT NOT NULL, total_cases INTEGER NOT NULL, retrieval_hit_rate REAL NOT NULL, answer_match_rate REAL NOT NULL, citation_accuracy REAL NOT NULL, refusal_accuracy REAL NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+
+    def record(self, dataset: str, report: dict[str, object]) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO evaluation_runs (dataset, total_cases, retrieval_hit_rate, answer_match_rate, citation_accuracy, refusal_accuracy) VALUES (?, ?, ?, ?, ?, ?)",
+                (dataset, report["total_cases"], report["retrieval_hit_rate"], report["answer_match_rate"], report["citation_accuracy"], report["refusal_accuracy"]),
+            )
+
+    def recent(self, dataset: str | None = None, limit: int = 10) -> list[dict[str, object]]:
+        query = "SELECT dataset, total_cases, retrieval_hit_rate, answer_match_rate, citation_accuracy, refusal_accuracy, created_at FROM evaluation_runs"
+        values: tuple[object, ...] = ()
+        if dataset:
+            query += " WHERE dataset = ?"
+            values = (dataset,)
+        query += " ORDER BY id DESC LIMIT ?"
+        values += (limit,)
+        with self._connect() as connection:
+            rows = connection.execute(query, values).fetchall()
+        keys = ("dataset", "total_cases", "retrieval_hit_rate", "answer_match_rate", "citation_accuracy", "refusal_accuracy", "created_at")
+        return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def _connect(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.path)

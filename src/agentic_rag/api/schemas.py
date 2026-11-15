@@ -113,6 +113,18 @@ class EvaluationReportResponse(BaseModel):
     cases: list[EvaluationCaseResponse]
 
 
+class EvaluationHistoryResponse(BaseModel):
+    """A compact historical benchmark result."""
+
+    dataset: str
+    total_cases: int
+    retrieval_hit_rate: float
+    answer_match_rate: float
+    citation_accuracy: float
+    refusal_accuracy: float
+    created_at: str
+
+
 class CitationResponse(BaseModel):
     """Citation returned with a grounded answer."""
 

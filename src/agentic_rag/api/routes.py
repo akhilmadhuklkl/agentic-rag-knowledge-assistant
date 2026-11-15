@@ -17,6 +17,7 @@ from agentic_rag.api.schemas import (
     ConversationTurnResponse,
     DocumentListResponse,
     DocumentResponse,
+    EvaluationHistoryResponse,
     EvaluationReportResponse,
     EvaluationRunRequest,
     FeedbackRequest,
@@ -36,7 +37,11 @@ from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 from agentic_rag.metrics import metrics
 from agentic_rag.storage.documents import DocumentStorageService
-from agentic_rag.storage.repository import SQLiteDocumentRepository, SQLiteFeedbackRepository
+from agentic_rag.storage.repository import (
+    SQLiteDocumentRepository,
+    SQLiteEvaluationRepository,
+    SQLiteFeedbackRepository,
+)
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -45,6 +50,7 @@ conversation_store = ConversationStore(
 )
 document_repository = SQLiteDocumentRepository(get_settings().database_path)
 feedback_repository = SQLiteFeedbackRepository(get_settings().database_path)
+evaluation_repository = SQLiteEvaluationRepository(get_settings().database_path)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
@@ -273,13 +279,26 @@ def run_evaluation(
                 GroundedAnswerService(build_answer_model(settings)),
             )
             cases = EvaluationService.load_cases(Path("evaluation/multi_document_cases.json"))
-            return EvaluationReportResponse(**EvaluationService(assistant).run(cases).as_dict())
+            report = EvaluationService(assistant).run(cases)
+            values = report.as_dict()
+            evaluation_repository.record(dataset, values)
+            return EvaluationReportResponse(**values)
     assistant = KnowledgeAssistantService(
         AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score),
         GroundedAnswerService(build_answer_model(settings)),
     )
     cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))
-    return EvaluationReportResponse(**EvaluationService(assistant).run(cases).as_dict())
+    report = EvaluationService(assistant).run(cases)
+    values = report.as_dict()
+    evaluation_repository.record(dataset, values)
+    return EvaluationReportResponse(**values)
+
+
+@router.get("/evaluation/history", response_model=list[EvaluationHistoryResponse])
+def evaluation_history(dataset: str | None = None) -> list[EvaluationHistoryResponse]:
+    """Return recent persisted quality-check runs."""
+
+    return [EvaluationHistoryResponse(**run) for run in evaluation_repository.recent(dataset)]
 
 
 @router.get("/conversations", response_model=ConversationListResponse)
