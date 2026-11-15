@@ -1,6 +1,6 @@
 # Product Readiness Report
 
-Audit date: 2026-11-14
+Audit date: 2026-11-15
 
 ## Overall status
 
@@ -26,18 +26,23 @@ Audit date: 2026-11-14
 - Request IDs, structured logs, metrics, and timing
 - Streamlit backup interface
 - Evaluation dataset and quality metrics
+- Separate answerable/refusal metrics and category-level scores
+- Historical evaluation trends and configurable quality gates
+- JSON and CSV evaluation report export
+- Runtime API, knowledge-base, and provider health indicators
+- Frontend smoke coverage and GitHub Actions CI
 
 ## Verification evidence
 
 ```text
-pytest: 61 passed
+pytest: 78 passed
 ruff: All checks passed
-pip check: No broken requirements found
-live API smoke test: passed
-git status: clean and synchronized with origin/main
+frontend JavaScript syntax: passed
+git diff --check: passed
+repository working tree: clean
 ```
 
-The live smoke test exercised health, indexing, and a grounded cited answer through the real HTTP service.
+The local verification suite covers backend behavior and critical static frontend hooks. A live HTTP smoke test should be run whenever the local API is started; deployment verification is intentionally not part of this phase.
 
 ## Current limitations
 
@@ -53,7 +58,7 @@ The live smoke test exercised health, indexing, and a grounded cited answer thro
 
 ### Priority 1: retrieval quality
 
-Add a model-backed embedding provider, reranking, richer evaluation cases, and regression thresholds.
+Add a model-backed embedding provider, reranking, and a larger golden evaluation dataset. Basic regression thresholds are now present, but they should be calibrated against a broader corpus.
 
 ### Priority 2: source coverage
 
@@ -69,7 +74,7 @@ Move repository implementations to PostgreSQL and the vector store to a managed 
 
 ### Priority 5: product UI
 
-Build the primary web UI against the API while preserving Streamlit as an internal fallback.
+Continue refining the primary product UI while preserving Streamlit as an internal fallback.
 
 ## Deployment gate
 
