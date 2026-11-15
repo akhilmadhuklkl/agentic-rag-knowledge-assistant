@@ -14,6 +14,7 @@
 .stage-latency{display:flex;gap:7px;flex-wrap:wrap;color:#66809d;font-size:9px;margin-top:6px}.stage-latency span{background:#ffffff06;border:1px solid var(--line);border-radius:5px;padding:3px 5px}
 .latency-recommendation{color:#a9d2ff;font-size:9px;line-height:1.4;margin-top:7px}
 .provider-metrics{display:grid;gap:6px}.provider-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;padding:10px;background:#07101d;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:11px}.provider-row strong{color:var(--ink)}.provider-header{background:transparent;border:0;color:#7090b5;font-size:10px;padding-bottom:2px}
+.comparison-status{font-weight:700}.comparison-status.healthy{color:var(--green)}.comparison-status.regression{color:#ff9baf}
 .confidence-warning{margin-top:15px;padding:11px 13px;border:1px solid #e8b65b66;border-radius:10px;background:#e8b65b12;color:#f0c878;font-size:12px}.confidence-warning.hidden{display:none}
 .latency-warning{margin-top:8px;padding:9px 13px;border:1px solid #ff9baf66;border-radius:10px;background:#ff6b8a12;color:#ffb3c2;font-size:11px}.latency-warning.hidden{display:none}
 .retrieval-diagnostics{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px;color:#66809d;font-size:10px}.retrieval-diagnostics strong{color:#a9d2ff;text-transform:capitalize}.retrieval-diagnostics code{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8fa1b8;background:#07101d;border:1px solid var(--line);border-radius:6px;padding:3px 6px}

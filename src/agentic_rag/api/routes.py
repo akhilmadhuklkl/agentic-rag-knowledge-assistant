@@ -539,7 +539,11 @@ def compare_providers(settings: Settings = Depends(get_settings)) -> ProviderCom
         if ollama_available:
             ollama_model = OllamaAnswerModel(settings.llm_model, settings.llm_base_url, max_retries=settings.llm_max_retries)
             ollama = EvaluationService(KnowledgeAssistantService(orchestrator, GroundedAnswerService(ollama_model))).run(cases).as_dict()
-    return ProviderComparisonResponse(deterministic=deterministic, ollama=ollama, ollama_available=ollama_available, detail="Comparison completed." if ollama_available else "Ollama is unavailable; deterministic results only.")
+    metrics = ("retrieval_hit_rate", "answer_match_rate", "citation_accuracy", "refusal_accuracy")
+    regression_details = [f"Deterministic {metric} is below {settings.evaluation_regression_threshold:.0%}." for metric in metrics if deterministic[metric] < settings.evaluation_regression_threshold]
+    if ollama:
+        regression_details.extend(f"Ollama {metric} is below {settings.evaluation_regression_threshold:.0%}." for metric in metrics if ollama[metric] < settings.evaluation_regression_threshold)
+    return ProviderComparisonResponse(deterministic=deterministic, ollama=ollama, ollama_available=ollama_available, detail="Comparison completed." if ollama_available else "Ollama is unavailable; deterministic results only.", regression_detected=bool(regression_details), regression_details=regression_details)
 
 
 @router.get("/conversations", response_model=ConversationListResponse)

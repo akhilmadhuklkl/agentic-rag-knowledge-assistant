@@ -180,6 +180,8 @@ class ProviderComparisonResponse(BaseModel):
     ollama: dict[str, object] | None = None
     ollama_available: bool
     detail: str
+    regression_detected: bool = False
+    regression_details: list[str] = Field(default_factory=list)
 
 
 class EvaluationHistoryResponse(BaseModel):
