@@ -93,6 +93,7 @@ The multi-document benchmark is in [evaluation/multi_document_cases.json](evalua
 - [API guide](docs/api.md)
 - [Streamlit backup UI](docs/streamlit-backup.md)
 - [Development and operations guide](docs/development.md)
+- [Evaluation baseline](docs/evaluation-baseline.md)
 
 ## Deployment
 
