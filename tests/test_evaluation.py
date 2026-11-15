@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from agentic_rag.agents.orchestrator import AgentOrchestrator
-from agentic_rag.evaluation.service import EvaluationService
+from agentic_rag.evaluation.service import EvaluationCase, EvaluationService
 from agentic_rag.generation.service import GroundedAnswerService
 from agentic_rag.indexing.service import DocumentIndexingService
 from agentic_rag.workflow.service import KnowledgeAssistantService
@@ -34,3 +34,14 @@ def test_evaluation_loads_cases_and_calculates_metrics() -> None:
     values = report.as_dict()
     assert values["retrieval_hit_rate"] == 0.6667
     assert values["citation_accuracy"] == 0.6667
+
+
+def test_evaluation_accepts_equivalent_answer_wording() -> None:
+    case = EvaluationCase(
+        question="What is the refund policy?",
+        expected_answer_keywords=["refund", "30|thirty", "days"],
+    )
+
+    assert case.matches_answer("Refund requests are accepted within 30 days.")
+    assert case.matches_answer("The refund policy allows requests within thirty days.")
+    assert not case.matches_answer("Refund requests are accepted within 14 days.")

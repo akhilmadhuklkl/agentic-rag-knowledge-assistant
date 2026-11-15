@@ -1,6 +1,7 @@
 """Run repeatable quality checks against the assistant workflow."""
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,7 +13,21 @@ class EvaluationCase:
     question: str
     expected_source: str | None = None
     expected_answer_contains: str | None = None
+    expected_answer_keywords: list[str] | None = None
     expected_refusal: bool = False
+
+    def matches_answer(self, answer: str) -> bool:
+        """Match meaning-bearing concepts without requiring one exact sentence."""
+
+        normalized_answer = _normalize(answer)
+        if self.expected_answer_contains and _normalize(self.expected_answer_contains) not in normalized_answer:
+            return False
+        if self.expected_answer_keywords:
+            return all(
+                any(_normalize(option) in normalized_answer for option in keyword.split("|"))
+                for keyword in self.expected_answer_keywords
+            )
+        return True
 
 
 @dataclass(frozen=True)
@@ -81,7 +96,7 @@ class EvaluationService:
             if case.expected_source is not None and case.expected_source in source_names:
                 retrieval_hits += 1
                 citation_hits += 1
-            if case.expected_answer_contains is None or case.expected_answer_contains.lower() in response.answer.lower():
+            if case.matches_answer(response.answer):
                 answer_matches += 1
             if response.refusal is case.expected_refusal:
                 correct_refusals += 1
@@ -92,3 +107,10 @@ class EvaluationService:
             citation_hits=citation_hits,
             correct_refusals=correct_refusals,
         )
+
+
+def _normalize(value: str) -> str:
+    """Normalize punctuation and common number spellings for flexible checks."""
+
+    normalized = value.lower().replace("thirty", "30").replace("one", "1")
+    return re.sub(r"[^a-z0-9]+", " ", normalized).strip()

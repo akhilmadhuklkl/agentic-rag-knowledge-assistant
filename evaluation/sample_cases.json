@@ -2,7 +2,7 @@
   {
     "question": "What is the refund policy?",
     "expected_source": "policy.md",
-    "expected_answer_contains": "thirty days",
+    "expected_answer_keywords": ["refund", "30|thirty", "days"],
     "expected_refusal": false
   },
   {
@@ -12,7 +12,7 @@
   {
     "question": "How long do I have to request a refund?",
     "expected_source": "policy.md",
-    "expected_answer_contains": "thirty days",
+    "expected_answer_keywords": ["refund", "30|thirty", "days"],
     "expected_refusal": false
   }
 ]
