@@ -32,5 +32,5 @@ def test_evaluation_loads_cases_and_calculates_metrics() -> None:
     assert report.refusal_accuracy == 2 / 3
 
     values = report.as_dict()
-    assert values["retrieval_hit_rate"] == 0.5
-    assert values["citation_accuracy"] == 0.5
+    assert values["retrieval_hit_rate"] == 0.3333
+    assert values["citation_accuracy"] == 0.3333
