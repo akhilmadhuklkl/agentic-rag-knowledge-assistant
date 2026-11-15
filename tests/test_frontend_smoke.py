@@ -21,6 +21,7 @@ def test_document_management_hooks_are_present() -> None:
     assert "/knowledge/documents/upload" in JAVASCRIPT
     assert "reindexStale" in JAVASCRIPT
     assert "deleteDocument" in JAVASCRIPT
+    assert "document will be re-indexed" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
