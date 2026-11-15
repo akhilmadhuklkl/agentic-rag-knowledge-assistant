@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     conversation_store_path: str = "data/conversations.json"
     database_path: str = "data/assistant.db"
     retrieval_semantic_weight: float = 0.7
+    retrieval_rerank_weight: float = 0.08
+    minimum_lexical_overlap: float = 0.3
     minimum_evidence_score: float = 0.4
     confidence_warning_threshold: float = 0.4
     response_latency_warning_ms: float = 10_000

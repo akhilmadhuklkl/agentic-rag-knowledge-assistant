@@ -22,11 +22,14 @@ class RetrievalResult:
 class HybridRetrievalService:
     """Rank vector-store candidates using semantic and keyword overlap."""
 
-    def __init__(self, vector_store: LocalVectorStore, semantic_weight: float = 0.7) -> None:
+    def __init__(self, vector_store: LocalVectorStore, semantic_weight: float = 0.7, rerank_weight: float = 0.08) -> None:
         if not 0 <= semantic_weight <= 1:
             raise ValueError("semantic_weight must be between 0 and 1")
         self.vector_store = vector_store
         self.semantic_weight = semantic_weight
+        if not 0 <= rerank_weight <= 1:
+            raise ValueError("rerank_weight must be between 0 and 1")
+        self.rerank_weight = rerank_weight
 
     def search(
         self,
@@ -65,7 +68,7 @@ class HybridRetrievalService:
         results = [
             RetrievalResult(
                 chunk=result.chunk,
-                score=result.score + (0.08 * result.proximity_score),
+                score=result.score + (self.rerank_weight * result.proximity_score),
                 semantic_score=result.semantic_score,
                 lexical_score=result.lexical_score,
                 proximity_score=result.proximity_score,

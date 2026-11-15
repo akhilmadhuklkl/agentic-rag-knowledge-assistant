@@ -34,12 +34,14 @@ class DocumentIndexingService:
         ingestion_service: DocumentIngestionService | None = None,
         embedding_provider: Any | None = None,
         semantic_weight: float = 0.7,
+        rerank_weight: float = 0.08,
         metadata_repository: Any | None = None,
     ) -> None:
         self.ingestion_service = ingestion_service or DocumentIngestionService()
         self.embedding_provider = embedding_provider or LocalHashEmbeddingProvider()
         self.vector_store = LocalVectorStore(vector_store_path, self.embedding_provider)
         self.semantic_weight = semantic_weight
+        self.rerank_weight = rerank_weight
         self.metadata_repository = metadata_repository
         self.manifest_path = Path(vector_store_path).with_suffix(".manifest.json")
         self._manifest = self._load_manifest()
@@ -142,5 +144,7 @@ class DocumentIndexingService:
         """Search indexed content through the hybrid retrieval layer."""
 
         return HybridRetrievalService(
-            self.vector_store, semantic_weight=self.semantic_weight if semantic_weight is None else semantic_weight
+            self.vector_store,
+            semantic_weight=self.semantic_weight if semantic_weight is None else semantic_weight,
+            rerank_weight=self.rerank_weight,
         ).search(query, top_k, source_name=source_name, file_type=file_type)

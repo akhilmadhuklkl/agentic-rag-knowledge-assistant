@@ -67,3 +67,8 @@ def test_hybrid_retrieval_reranks_close_query_terms() -> None:
     distant = DocumentChunk("distant", "security overview with unrelated details and training", "b.txt", "b.txt", "txt", None, 0)
 
     assert service._term_proximity_score("security training", close) > service._term_proximity_score("security training", distant)
+
+
+def test_hybrid_retrieval_accepts_configurable_rerank_weight() -> None:
+    service = build_retrieval_service()
+    assert service.rerank_weight == 0.08

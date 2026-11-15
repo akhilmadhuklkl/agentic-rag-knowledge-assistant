@@ -108,6 +108,7 @@ def get_indexing_service(settings: Settings = Depends(get_settings)) -> Document
         settings.vector_store_path,
         embedding_provider=build_embedding_provider(settings),
         semantic_weight=settings.retrieval_semantic_weight,
+        rerank_weight=settings.retrieval_rerank_weight,
         metadata_repository=document_repository,
     )
 
@@ -402,7 +403,7 @@ def ask(
     contextual_query = conversation_store.contextual_query(request.query, history)
     settings = get_settings()
     assistant = KnowledgeAssistantService(
-        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score),
+        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap),
         GroundedAnswerService(build_answer_model(get_settings())),
     )
     semantic_weight = _search_mode_weight(request.search_mode, settings.retrieval_semantic_weight)
@@ -496,7 +497,7 @@ def run_evaluation(
             for document in sorted(Path("evaluation/fixtures").iterdir()):
                 evaluation_service.index_file(document)
             assistant = KnowledgeAssistantService(
-                AgentOrchestrator(evaluation_service, minimum_evidence_score=settings.minimum_evidence_score),
+                AgentOrchestrator(evaluation_service, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap),
                 GroundedAnswerService(build_answer_model(settings)),
             )
             cases = EvaluationService.load_cases(Path("evaluation/multi_document_cases.json"))
@@ -506,7 +507,7 @@ def run_evaluation(
             evaluation_repository.record(dataset, values)
             return EvaluationReportResponse(**values)
     assistant = KnowledgeAssistantService(
-        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score),
+        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap),
         GroundedAnswerService(build_answer_model(settings)),
     )
     cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))
@@ -556,7 +557,7 @@ def compare_providers(settings: Settings = Depends(get_settings)) -> ProviderCom
         indexing = DocumentIndexingService(Path(temp_dir) / "vectors", embedding_provider=LocalHashEmbeddingProvider())
         indexing.index_file(Path("evaluation/fixtures/policy.md") if Path("evaluation/fixtures/policy.md").is_file() else Path("tests/fixtures/policy.md"))
         cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))
-        orchestrator = AgentOrchestrator(indexing, minimum_evidence_score=settings.minimum_evidence_score)
+        orchestrator = AgentOrchestrator(indexing, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap)
         deterministic = EvaluationService(KnowledgeAssistantService(orchestrator, GroundedAnswerService())).run(cases).as_dict()
         ollama = None
         if ollama_available:
