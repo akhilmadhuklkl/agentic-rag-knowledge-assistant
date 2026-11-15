@@ -46,23 +46,23 @@ class AgentOrchestrator:
             max_attempts=self.max_attempts,
         )
 
-    def run(self, question: str, top_k: int = 5) -> OrchestrationResult:
+    def run(self, question: str, top_k: int = 5, semantic_weight: float | None = None, file_type: str | None = None) -> OrchestrationResult:
         """Execute the plan with at most ``max_attempts`` retrieval calls."""
 
         plan = self.plan(question)
         if plan.action is PlanAction.CLARIFY:
             return OrchestrationResult(plan, [], 0, True)
 
-        results = self._reliable_results(plan.query, top_k)
+        results = self._reliable_results(plan.query, top_k, semantic_weight, file_type)
         attempts = 1
         if not results and attempts < plan.max_attempts:
             refined_query = self._refine_query(plan.query)
-            results = self._reliable_results(refined_query, top_k)
+            results = self._reliable_results(refined_query, top_k, semantic_weight, file_type)
             attempts += 1
         return OrchestrationResult(plan, results, attempts, not results)
 
-    def _reliable_results(self, query: str, top_k: int) -> list[RetrievalResult]:
-        results = self.indexing_service.search(query, top_k=top_k)
+    def _reliable_results(self, query: str, top_k: int, semantic_weight: float | None = None, file_type: str | None = None) -> list[RetrievalResult]:
+        results = self.indexing_service.search(query, top_k=top_k, semantic_weight=semantic_weight, file_type=file_type)
         return [
             result
             for result in results

@@ -39,11 +39,11 @@ class KnowledgeAssistantService:
         self.answer_service = answer_service or GroundedAnswerService()
         self.verifier = verifier or AnswerVerifier()
 
-    def ask(self, question: str, top_k: int = 5) -> AssistantResponse:
+    def ask(self, question: str, top_k: int = 5, semantic_weight: float | None = None, file_type: str | None = None) -> AssistantResponse:
         """Answer one question through the complete workflow."""
 
         started = perf_counter()
-        orchestration = self.orchestrator.run(question, top_k=top_k)
+        orchestration = self.orchestrator.run(question, top_k=top_k, semantic_weight=semantic_weight, file_type=file_type)
         generated = self.answer_service.generate(question, orchestration.results)
         verification = self.verifier.verify(generated, orchestration.results)
         duration_ms = round((perf_counter() - started) * 1000, 2)

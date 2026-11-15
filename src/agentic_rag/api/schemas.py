@@ -78,6 +78,7 @@ class SearchRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=50)
     source_name: str | None = Field(default=None, min_length=1)
     file_type: str | None = Field(default=None, min_length=1)
+    search_mode: Literal["hybrid", "semantic", "keyword"] = "hybrid"
 
 
 class SearchResultResponse(BaseModel):

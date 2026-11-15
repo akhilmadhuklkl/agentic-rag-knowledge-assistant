@@ -137,9 +137,10 @@ class DocumentIndexingService:
         top_k: int = 5,
         source_name: str | None = None,
         file_type: str | None = None,
+        semantic_weight: float | None = None,
     ) -> list[RetrievalResult]:
         """Search indexed content through the hybrid retrieval layer."""
 
         return HybridRetrievalService(
-            self.vector_store, semantic_weight=self.semantic_weight
+            self.vector_store, semantic_weight=self.semantic_weight if semantic_weight is None else semantic_weight
         ).search(query, top_k, source_name=source_name, file_type=file_type)
