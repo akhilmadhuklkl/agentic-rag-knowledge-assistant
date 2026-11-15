@@ -1,6 +1,7 @@
 """Knowledge-base API routes."""
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, Depends, File, UploadFile
 
@@ -17,6 +18,7 @@ from agentic_rag.api.schemas import (
     DocumentListResponse,
     DocumentResponse,
     EvaluationReportResponse,
+    EvaluationRunRequest,
     FeedbackRequest,
     IndexPathRequest,
     IndexResponse,
@@ -250,18 +252,34 @@ def feedback_summary() -> dict[str, int]:
 
 @router.post("/evaluation/run", response_model=EvaluationReportResponse)
 def run_evaluation(
+    request: EvaluationRunRequest | None = None,
     service: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
 ) -> EvaluationReportResponse:
-    """Run the checked-in evaluation dataset against the current assistant."""
+    """Run a selected checked-in evaluation dataset."""
 
     settings = get_settings()
+    dataset = request.dataset if request else "sample"
+    if dataset == "multi_document":
+        with TemporaryDirectory(prefix="atlas-evaluation-") as temp_dir:
+            evaluation_service = DocumentIndexingService(
+                Path(temp_dir) / "vectors",
+                embedding_provider=service.embedding_provider,
+                semantic_weight=settings.retrieval_semantic_weight,
+            )
+            for document in sorted(Path("evaluation/fixtures").iterdir()):
+                evaluation_service.index_file(document)
+            assistant = KnowledgeAssistantService(
+                AgentOrchestrator(evaluation_service, minimum_evidence_score=settings.minimum_evidence_score),
+                GroundedAnswerService(build_answer_model(settings)),
+            )
+            cases = EvaluationService.load_cases(Path("evaluation/multi_document_cases.json"))
+            return EvaluationReportResponse(**EvaluationService(assistant).run(cases).as_dict())
     assistant = KnowledgeAssistantService(
         AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score),
         GroundedAnswerService(build_answer_model(settings)),
     )
     cases = EvaluationService.load_cases(Path("evaluation/sample_cases.json"))
-    report = EvaluationService(assistant).run(cases)
-    return EvaluationReportResponse(**report.as_dict())
+    return EvaluationReportResponse(**EvaluationService(assistant).run(cases).as_dict())
 
 
 @router.get("/conversations", response_model=ConversationListResponse)

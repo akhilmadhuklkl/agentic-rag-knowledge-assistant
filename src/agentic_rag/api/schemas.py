@@ -80,6 +80,12 @@ class FeedbackRequest(BaseModel):
     conversation_id: str | None = Field(default=None, max_length=64)
 
 
+class EvaluationRunRequest(BaseModel):
+    """Select the isolated benchmark corpus to evaluate."""
+
+    dataset: Literal["sample", "multi_document"] = "sample"
+
+
 class EvaluationCaseResponse(BaseModel):
     """Result details for one quality benchmark case."""
 
