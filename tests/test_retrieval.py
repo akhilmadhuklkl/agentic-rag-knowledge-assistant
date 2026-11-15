@@ -59,3 +59,11 @@ def test_hybrid_retrieval_boosts_exact_multi_word_phrases() -> None:
 
     assert service._phrase_score("first second", exact) == 1.0
     assert service._phrase_score("first second", separated) == 0.0
+
+
+def test_hybrid_retrieval_reranks_close_query_terms() -> None:
+    service = build_retrieval_service()
+    close = DocumentChunk("close", "security training first week", "a.md", "a.md", "md", None, 0)
+    distant = DocumentChunk("distant", "security overview with unrelated details and training", "b.txt", "b.txt", "txt", None, 0)
+
+    assert service._term_proximity_score("security training", close) > service._term_proximity_score("security training", distant)

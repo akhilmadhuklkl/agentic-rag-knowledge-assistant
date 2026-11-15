@@ -60,6 +60,15 @@ class HybridRetrievalService:
             )
             for result in candidates
         ]
+        results = [
+            RetrievalResult(
+                chunk=result.chunk,
+                score=result.score + (0.08 * self._term_proximity_score(query, result.chunk)),
+                semantic_score=result.semantic_score,
+                lexical_score=result.lexical_score,
+            )
+            for result in results
+        ]
         ranked = [
             result
             for result in sorted(results, key=lambda result: result.score, reverse=True)
@@ -88,6 +97,17 @@ class HybridRetrievalService:
         if len(normalized_query.split()) < 2 or not normalized_query:
             return 0.0
         return 1.0 if normalized_query in normalized_text else 0.0
+
+    @classmethod
+    def _term_proximity_score(cls, query: str, chunk: DocumentChunk) -> float:
+        """Rerank chunks whose query terms occur close together."""
+
+        query_tokens = cls._tokens_in_order(query)
+        positions = [index for index, token in enumerate(cls._tokens_in_order(chunk.text)) if token in query_tokens]
+        if len(query_tokens) < 2 or len(positions) < 2:
+            return 0.0
+        span = max(positions) - min(positions) + 1
+        return min(1.0, len(set(query_tokens)) / span)
 
     @staticmethod
     def _tokens_in_order(text: str) -> list[str]:
