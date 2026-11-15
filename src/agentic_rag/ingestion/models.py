@@ -15,6 +15,8 @@ class DocumentChunk:
     file_type: str
     page_number: int | None
     chunk_index: int
+    authority: str = "standard"
+    freshness: str = "unspecified"
 
 
 @dataclass(frozen=True)

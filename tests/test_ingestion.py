@@ -35,3 +35,12 @@ def test_ingests_supported_files_in_sorted_order() -> None:
     chunks = DocumentIngestionService().ingest_directory(FIXTURES / "directory")
 
     assert [chunk.source_name for chunk in chunks] == ["a.md", "b.txt"]
+
+
+def test_reads_authority_and_freshness_metadata() -> None:
+    authority, freshness = DocumentIngestionService._metadata(
+        "Authority: authoritative\nStatus: current\n\n# Policy\nCurrent rule."
+    )
+
+    assert authority == "authoritative"
+    assert freshness == "current"

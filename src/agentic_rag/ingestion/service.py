@@ -63,6 +63,7 @@ class DocumentIngestionService:
             text = self._clean_text(page.text)
             if not text:
                 continue
+            authority, freshness = self._metadata(text)
             for index, chunk_text in enumerate(self._split_text(text)):
                 page_marker = page.page_number or 1
                 chunk_id = f"{page.source_name}:{page_marker}:{index}"
@@ -75,9 +76,24 @@ class DocumentIngestionService:
                         file_type=page.file_type,
                         page_number=page.page_number,
                         chunk_index=index,
+                        authority=authority,
+                        freshness=freshness,
                     )
                 )
         return chunks
+
+    @staticmethod
+    def _metadata(text: str) -> tuple[str, str]:
+        """Read optional structured authority metadata from document headers."""
+
+        header = "\n".join(text.splitlines()[:8]).lower()
+        authority = "authoritative" if "authority: authoritative" in header else "standard"
+        if "authority: legacy" in header:
+            authority = "legacy"
+        freshness = "current" if "status: current" in header else "unspecified"
+        if "status: historical" in header:
+            freshness = "historical"
+        return authority, freshness
 
     @staticmethod
     def _clean_text(text: str) -> str:

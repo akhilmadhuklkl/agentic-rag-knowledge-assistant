@@ -121,9 +121,9 @@ class HybridRetrievalService:
         """Prefer current policy language over explicitly obsolete notes."""
 
         text = chunk.text.lower()
-        if any(marker in text for marker in ("legacy", "historical", "not the current", "older process")):
+        if chunk.authority == "legacy" or chunk.freshness == "historical" or any(marker in text for marker in ("legacy", "historical", "not the current", "older process")):
             return -0.2
-        if "current policy" in text or "current access policy" in text:
+        if chunk.authority == "authoritative" or chunk.freshness == "current" or "current policy" in text or "current access policy" in text:
             return 0.05
         return 0.0
 
