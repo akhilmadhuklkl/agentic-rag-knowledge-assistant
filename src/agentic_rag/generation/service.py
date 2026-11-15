@@ -17,6 +17,8 @@ class Citation:
     page_number: int | None
     excerpt: str
     confidence: float
+    semantic_score: float
+    lexical_score: float
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,8 @@ class GroundedAnswerService:
                 page_number=result.chunk.page_number,
                 excerpt=" ".join(result.chunk.text.split())[:360],
                 confidence=round(min(1.0, max(0.0, result.score)), 4),
+                semantic_score=round(result.semantic_score, 4),
+                lexical_score=round(result.lexical_score, 4),
             )
             for index, result in enumerate(results, start=1)
         ]

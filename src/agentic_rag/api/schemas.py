@@ -165,6 +165,8 @@ class CitationResponse(BaseModel):
     page_number: int | None
     excerpt: str
     confidence: float
+    semantic_score: float
+    lexical_score: float
 
 
 class AnswerResponse(BaseModel):
