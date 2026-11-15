@@ -349,6 +349,7 @@ def answer(
         refusal=generated.refusal,
         confidence_warning=confidence_warning,
         confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
+        retrieval_diagnostics={"query": request.query, "search_mode": request.search_mode, "top_k": request.top_k, "file_type": request.file_type or "all"},
     )
 
 
@@ -385,6 +386,7 @@ def ask(
         conversation_id=conversation_id,
         confidence_warning=confidence_warning,
         confidence_warning_message="Some evidence has a low retrieval match. Review the cited source carefully." if confidence_warning else None,
+        retrieval_diagnostics={"query": contextual_query, "search_mode": request.search_mode, "top_k": request.top_k, "file_type": request.file_type or "all"},
     )
 
 

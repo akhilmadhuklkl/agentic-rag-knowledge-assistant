@@ -180,6 +180,7 @@ class AnswerResponse(BaseModel):
     refusal: bool
     confidence_warning: bool = False
     confidence_warning_message: str | None = None
+    retrieval_diagnostics: dict[str, object] = Field(default_factory=dict)
 
 
 class AskResponse(AnswerResponse):
