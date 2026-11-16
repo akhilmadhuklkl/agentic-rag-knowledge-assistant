@@ -192,6 +192,23 @@ def get_document_storage(settings: Settings = Depends(get_settings)) -> Document
     )
 
 
+@router.delete("/security/quarantine/{name}")
+def delete_quarantined_upload(
+    name: str,
+    request: Request,
+    settings: Settings = Depends(get_settings),  # noqa: B008
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+) -> dict[str, str]:
+    """Delete one quarantined upload after administrator authorization."""
+
+    admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+    _require_admin(request, admins)
+    if not storage.delete_quarantined(name):
+        raise FileNotFoundError(name)
+    ingestion_repository.record("quarantine_deleted", name, "Administrator removed quarantined upload")
+    return {"status": "deleted", "name": Path(name).name}
+
+
 @router.get("/documents", response_model=DocumentListResponse)
 def list_documents(
     storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008

@@ -50,3 +50,13 @@ def test_suspicious_upload_is_quarantined(tmp_path) -> None:
     assert not list((tmp_path / "documents").iterdir())
     assert len(list((tmp_path / "quarantine").iterdir())) == 1
     assert audit.events[0][0] == "quarantined"
+
+
+def test_quarantine_cleanup_cannot_escape_quarantine_root(tmp_path) -> None:
+    service = DocumentStorageService(tmp_path / "documents", quarantine_root=tmp_path / "quarantine")
+    service._quarantine("payload.txt", b"MZ executable payload")
+    name = service.list_quarantine()[0]
+
+    assert service.delete_quarantined("../" + name)
+    assert service.list_quarantine() == []
+    assert not service.delete_quarantined("missing.bin")

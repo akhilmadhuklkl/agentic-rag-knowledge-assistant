@@ -86,6 +86,22 @@ class DocumentStorageService:
         destination.write_bytes(content)
         return destination
 
+    def list_quarantine(self) -> list[str]:
+        """List quarantined file names without exposing their contents."""
+
+        if not self.quarantine_root.is_dir():
+            return []
+        return sorted(path.name for path in self.quarantine_root.iterdir() if path.is_file())
+
+    def delete_quarantined(self, name: str) -> bool:
+        """Delete one quarantined file after validating it stays in quarantine."""
+
+        candidate = (self.quarantine_root / Path(name).name).resolve()
+        if candidate.parent != self.quarantine_root.resolve() or not candidate.is_file():
+            return False
+        candidate.unlink()
+        return True
+
     def list_documents(self) -> list[StoredDocument]:
         """Return supported documents in stable filename order."""
 
