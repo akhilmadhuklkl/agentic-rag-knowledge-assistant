@@ -8,6 +8,15 @@ This baseline was run through the real local pipeline: fixture ingestion, vector
 
 The benchmark now contains 20 cases covering exact questions, paraphrases, distractor documents, authority conflicts, multi-hop questions, and refusal behavior.
 
+To compare providers locally, run:
+
+```powershell
+python scripts/embedding_benchmark.py --provider local
+python scripts/embedding_benchmark.py --provider ollama --model nomic-embed-text
+```
+
+The Ollama command requires Ollama to be running and the embedding model to be available. It uses a temporary index, so it does not alter the application's active knowledge base.
+
 | Measure | Result |
 |---|---:|
 | Total cases | 20 |
