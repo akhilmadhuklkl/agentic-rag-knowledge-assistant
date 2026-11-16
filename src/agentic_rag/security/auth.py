@@ -1,6 +1,7 @@
 """Request authentication and workspace isolation checks."""
 
 import re
+import secrets
 from dataclasses import dataclass
 
 from agentic_rag.config import Settings
@@ -17,7 +18,8 @@ class RequestIdentity:
 def authenticate_request(headers: dict[str, str], settings: Settings) -> RequestIdentity:
     """Validate API key and workspace headers against configured boundaries."""
 
-    if settings.api_key and headers.get("x-api-key") != settings.api_key:
+    provided_api_key = headers.get("x-api-key", "")
+    if settings.api_key and not secrets.compare_digest(provided_api_key, settings.api_key):
         raise PermissionError("Invalid API key")
     user_id = headers.get("x-user-id", "anonymous")
     workspace_id = headers.get("x-workspace-id", settings.workspace_id)
@@ -25,6 +27,6 @@ def authenticate_request(headers: dict[str, str], settings: Settings) -> Request
         raise PermissionError("Workspace header is required")
     if workspace_id != settings.workspace_id:
         raise PermissionError("Workspace access denied")
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", user_id):
-        raise PermissionError("Invalid user ID")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", user_id) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", workspace_id):
+        raise PermissionError("Invalid user or workspace ID")
     return RequestIdentity(user_id=user_id, workspace_id=workspace_id)

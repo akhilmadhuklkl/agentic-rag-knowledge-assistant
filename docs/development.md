@@ -58,6 +58,8 @@ ollama pull nomic-embed-text
 
 Set `LLM_PROVIDER=ollama` and `EMBEDDING_PROVIDER=ollama` in `.env`, then re-index documents after changing the embedding provider or model.
 
+For local request boundaries, set `API_KEY` and `WORKSPACE_ID`. When `REQUIRE_WORKSPACE_HEADER=true`, every protected request must include `X-Workspace-ID`; callers may also provide `X-User-ID` for request-level identity logging. Workspace and user identifiers accept letters, numbers, `_`, and `-` only. Full identity-provider authentication and per-document ownership are deployment-phase work.
+
 Retrieval tuning is controlled by `RETRIEVAL_SEMANTIC_WEIGHT`, `RETRIEVAL_RERANK_WEIGHT`, `MINIMUM_EVIDENCE_SCORE`, and `MINIMUM_LEXICAL_OVERLAP`. Increase rerank weight to favor query terms occurring close together; increase the minimum thresholds to require stronger evidence, with the trade-off that more questions may safely refuse.
 
 Web fallback is opt-in through `WEB_SEARCH_ENABLED=true`. Restrict it with `WEB_SEARCH_ALLOWED_DOMAINS=example.com,docs.example.com`; an empty allowlist permits results from the configured search provider.

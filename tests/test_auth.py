@@ -28,3 +28,11 @@ def test_authentication_requires_workspace_header_when_configured() -> None:
             {"x-api-key": "secret"},
             Settings(api_key="secret", workspace_id="team-a", require_workspace_header=True),
         )
+
+
+def test_authentication_rejects_malformed_workspace_id() -> None:
+    with pytest.raises(PermissionError, match="Invalid user or workspace ID"):
+        authenticate_request(
+            {"x-api-key": "secret", "x-workspace-id": "team/a", "x-user-id": "user_1"},
+            Settings(api_key="secret", workspace_id="team/a"),
+        )
