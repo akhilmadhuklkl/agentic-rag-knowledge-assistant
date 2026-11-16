@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     web_search_enabled: bool = False
     web_search_timeout_seconds: float = 4.0
     web_search_allowed_domains: str = ""
+    audit_retention_days: int = 30
 
     model_config = SettingsConfigDict(
         env_file=".env",

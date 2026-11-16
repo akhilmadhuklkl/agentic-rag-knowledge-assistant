@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
                 audit_repository.record(
                     get_request_id(), request.method, request.url.path, str(error)
                 )
+                audit_repository.purge_older_than(settings.audit_retention_days)
                 status_code = 401 if "API key" in str(error) else 403
                 return JSONResponse(status_code=status_code, content={"detail": str(error)})
             log_event(

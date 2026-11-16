@@ -26,3 +26,4 @@ def test_sqlite_audit_repository_persists_recent_security_events(tmp_path: Path)
     events = repository.recent()
     assert events[0]["request_id"] == "request-1"
     assert events[0]["reason"] == "Invalid API key"
+    assert repository.recent(query="API key")[0]["path"] == "/metrics"

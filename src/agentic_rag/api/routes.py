@@ -131,10 +131,10 @@ def provider_health(settings: Settings = Depends(get_settings)) -> ProviderHealt
 
 
 @router.get("/security/audit", response_model=list[SecurityAuditEventResponse])
-def security_audit(limit: int = Query(default=20, ge=1, le=100)) -> list[SecurityAuditEventResponse]:
+def security_audit(limit: int = Query(default=20, ge=1, le=100), query: str | None = Query(default=None, max_length=100)) -> list[SecurityAuditEventResponse]:
     """Return recent authentication audit events without sensitive headers."""
 
-    return [SecurityAuditEventResponse(**event) for event in audit_repository.recent(limit)]
+    return [SecurityAuditEventResponse(**event) for event in audit_repository.recent(limit, query)]
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008

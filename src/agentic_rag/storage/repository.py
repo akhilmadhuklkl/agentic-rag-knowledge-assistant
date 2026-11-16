@@ -1,6 +1,7 @@
 """SQLite repositories for document metadata and index freshness."""
 
 import sqlite3
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from agentic_rag.storage.documents import StoredDocument
@@ -124,15 +125,31 @@ class SQLiteAuditRepository:
                 (request_id or "unknown", method, path, reason),
             )
 
-    def recent(self, limit: int = 20) -> list[dict[str, str]]:
+    def recent(self, limit: int = 20, query: str | None = None) -> list[dict[str, str]]:
         with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT request_id, method, path, reason, created_at "
-                "FROM security_audit_events ORDER BY id DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
+            if query:
+                pattern = f"%{query}%"
+                rows = connection.execute(
+                    "SELECT request_id, method, path, reason, created_at FROM security_audit_events "
+                    "WHERE path LIKE ? OR reason LIKE ? ORDER BY id DESC LIMIT ?",
+                    (pattern, pattern, limit),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT request_id, method, path, reason, created_at "
+                    "FROM security_audit_events ORDER BY id DESC LIMIT ?",
+                    (limit,),
+                ).fetchall()
         keys = ("request_id", "method", "path", "reason", "created_at")
         return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def purge_older_than(self, days: int) -> int:
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        with self._connect() as connection:
+            result = connection.execute(
+                "DELETE FROM security_audit_events WHERE created_at < ?", (cutoff,)
+            )
+        return result.rowcount
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.path)
