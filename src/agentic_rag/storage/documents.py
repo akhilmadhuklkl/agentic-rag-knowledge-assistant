@@ -41,8 +41,19 @@ class DocumentStorageService:
         suffix = Path(safe_name).suffix.lower()
         if suffix not in SUPPORTED_EXTENSIONS:
             raise ValueError(f"Unsupported file type: {suffix or '<none>'}")
+        if len(safe_name) > 255:
+            raise ValueError("filename is too long")
+        if not content:
+            raise ValueError("document must not be empty")
         if len(content) > self.max_size_bytes:
             raise ValueError("document exceeds the maximum allowed size")
+        if suffix == ".pdf" and not content.startswith(b"%PDF-"):
+            raise ValueError("PDF content signature is invalid")
+        if suffix in {".md", ".markdown", ".txt"}:
+            try:
+                content.decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise ValueError("text document must be valid UTF-8") from error
 
         destination = self.root / safe_name
         if destination.exists():

@@ -22,3 +22,12 @@ def test_upload_size_limit_is_enforced() -> None:
 
     with pytest.raises(ValueError, match="maximum allowed size"):
         service.save("notes.txt", b"too large")
+
+
+def test_upload_rejects_empty_and_invalid_pdf_content() -> None:
+    service = DocumentStorageService("tests/.runtime/security-documents-safe")
+
+    with pytest.raises(ValueError, match="must not be empty"):
+        service.save("empty.txt", b"")
+    with pytest.raises(ValueError, match="signature is invalid"):
+        service.save("document.pdf", b"not a pdf")
