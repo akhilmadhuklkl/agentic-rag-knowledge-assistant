@@ -76,6 +76,9 @@ class ProviderHealthResponse(BaseModel):
     embedding_model: str
     ollama_reachable: bool
     detail: str
+    embedding_provider_id: str = "unknown"
+    indexed_provider_id: str | None = None
+    index_status: Literal["compatible", "needs_reindex", "not_created"] = "not_created"
 
 
 class ReindexStaleResponse(BaseModel):

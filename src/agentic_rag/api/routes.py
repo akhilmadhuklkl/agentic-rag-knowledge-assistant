@@ -1,6 +1,7 @@
 """Knowledge-base API routes."""
 
 import hashlib
+import json
 import math
 import re
 from pathlib import Path
@@ -102,9 +103,28 @@ def provider_health(settings: Settings = Depends(get_settings)) -> ProviderHealt
             reachable = False
     else:
         reachable = True
-    status = "ready" if reachable else "degraded"
-    detail = "Configured local providers are ready." if reachable and not needs_ollama else ("Ollama is reachable." if reachable else "Ollama is not reachable; check that the local service is running.")
-    return ProviderHealthResponse(status=status, llm_provider=settings.llm_provider, llm_model=settings.llm_model, embedding_provider=settings.embedding_provider, embedding_model=settings.embedding_model, ollama_reachable=reachable, detail=detail)
+    embedding_provider = build_embedding_provider(settings)
+    embedding_provider_id = getattr(embedding_provider, "provider_id", type(embedding_provider).__name__)
+    metadata_path = Path(settings.vector_store_path).with_suffix(".meta.json")
+    indexed_provider_id = None
+    index_status = "not_created"
+    if metadata_path.is_file():
+        try:
+            indexed_provider_id = json.loads(metadata_path.read_text(encoding="utf-8")).get("provider_id")
+        except (OSError, json.JSONDecodeError):
+            index_status = "needs_reindex"
+        else:
+            index_status = "compatible" if indexed_provider_id == embedding_provider_id else "needs_reindex"
+    status = "ready" if reachable and index_status != "needs_reindex" else "degraded"
+    if index_status == "needs_reindex":
+        detail = "Embedding provider changed; re-index the knowledge base before asking questions."
+    elif reachable and not needs_ollama:
+        detail = "Configured local providers are ready."
+    elif reachable:
+        detail = "Ollama is reachable and the configured embedding index is compatible."
+    else:
+        detail = "Ollama is not reachable; check that the local service is running."
+    return ProviderHealthResponse(status=status, llm_provider=settings.llm_provider, llm_model=settings.llm_model, embedding_provider=settings.embedding_provider, embedding_model=settings.embedding_model, ollama_reachable=reachable, detail=detail, embedding_provider_id=embedding_provider_id, indexed_provider_id=indexed_provider_id, index_status=index_status)
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
