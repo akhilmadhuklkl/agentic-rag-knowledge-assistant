@@ -1,7 +1,11 @@
 from pathlib import Path
 
 from agentic_rag.api import routes
-from agentic_rag.api.schemas import BulkDocumentMetadataUpdate, DocumentMetadataUpdate
+from agentic_rag.api.schemas import (
+    BulkDocumentMetadataUndo,
+    BulkDocumentMetadataUpdate,
+    DocumentMetadataUpdate,
+)
 from agentic_rag.storage.documents import StoredDocument
 
 
@@ -122,3 +126,23 @@ def test_undo_metadata_route_restores_previous_labels(monkeypatch, tmp_path: Pat
     assert response.freshness == "unspecified"
     assert repository.updated == ("policy.md", "standard", "unspecified")
     assert indexing.reindexed == path
+
+
+def test_bulk_undo_metadata_route_returns_partial_results(monkeypatch, tmp_path: Path) -> None:
+    path = str(tmp_path / "policy.md")
+    document = StoredDocument("policy.md", path, 10, "md", "legacy", "historical")
+    repository = FakeRepository(document)
+    indexing = FakeIndexing()
+    activity = FakeActivity()
+    activity.record("metadata_updated", "policy.md", "Authority=standard->legacy; freshness=unspecified->historical")
+    monkeypatch.setattr(routes, "document_repository", repository)
+    monkeypatch.setattr(routes, "ingestion_repository", activity)
+
+    response = routes.undo_documents_metadata(
+        BulkDocumentMetadataUndo(names=["policy.md", "missing.md"]),
+        indexing=indexing,
+    )
+
+    assert len(response.updated) == 1
+    assert response.updated[0].authority == "standard"
+    assert response.errors == ["missing.md: missing.md"]

@@ -16,6 +16,7 @@ from agentic_rag.api.schemas import (
     AnswerResponse,
     AskResponse,
     BulkDocumentMetadataResponse,
+    BulkDocumentMetadataUndo,
     BulkDocumentMetadataUpdate,
     CitationResponse,
     CleanupResponse,
@@ -304,6 +305,23 @@ def undo_document_metadata(
     indexing.vector_store.update_source_metadata(document.path, authority, freshness)
     ingestion_repository.record("metadata_undone", name, f"Restored authority={authority}; freshness={freshness}")
     return DocumentResponse(**StoredDocument(document.name, document.path, document.size_bytes, document.file_type, authority, freshness).__dict__)
+
+
+@router.post("/documents/metadata-history/undo", response_model=BulkDocumentMetadataResponse)
+def undo_documents_metadata(
+    request: BulkDocumentMetadataUndo,
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> BulkDocumentMetadataResponse:
+    """Undo the latest metadata edit for each selected document."""
+
+    updated: list[DocumentResponse] = []
+    errors: list[str] = []
+    for name in request.names:
+        try:
+            updated.append(undo_document_metadata(name, indexing))
+        except (FileNotFoundError, ValueError) as error:
+            errors.append(f"{name}: {error}")
+    return BulkDocumentMetadataResponse(updated=updated, errors=errors)
 
 
 def _stored_document_path(name: str, storage: DocumentStorageService) -> Path:

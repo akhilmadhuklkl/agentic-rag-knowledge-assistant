@@ -46,6 +46,12 @@ class BulkDocumentMetadataResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class BulkDocumentMetadataUndo(BaseModel):
+    """Select documents whose latest metadata edit should be undone."""
+
+    names: list[str] = Field(min_length=1, max_length=100)
+
+
 class DocumentListResponse(BaseModel):
     """Available stored documents."""
 
