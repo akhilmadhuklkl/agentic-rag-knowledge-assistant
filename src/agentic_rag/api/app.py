@@ -52,6 +52,12 @@ def create_app() -> FastAPI:
             try:
                 identity = authenticate_request(dict(request.headers), settings)
             except PermissionError as error:
+                log_event(
+                    "request_authentication_failed",
+                    method=request.method,
+                    path=request.url.path,
+                    reason=str(error),
+                )
                 status_code = 401 if "API key" in str(error) else 403
                 return JSONResponse(status_code=status_code, content={"detail": str(error)})
             log_event(
