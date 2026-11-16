@@ -1,5 +1,10 @@
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
+
+from agentic_rag.api.routes import security_audit
+from agentic_rag.config import Settings
 from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteDocumentRepository
 
@@ -21,9 +26,27 @@ def test_sqlite_document_repository_stores_metadata_and_fingerprint(tmp_path: Pa
 def test_sqlite_audit_repository_persists_recent_security_events(tmp_path: Path) -> None:
     repository = SQLiteAuditRepository(tmp_path / "assistant.db")
 
-    repository.record("request-1", "GET", "/metrics", "Invalid API key")
+    repository.record("request-1", "GET", "/metrics", "Invalid API key", "high")
+    repository.record("request-2", "GET", "/knowledge", "Workspace access denied", "medium")
 
     events = repository.recent()
-    assert events[0]["request_id"] == "request-1"
-    assert events[0]["reason"] == "Invalid API key"
+    assert events[0]["request_id"] == "request-2"
+    assert events[0]["reason"] == "Workspace access denied"
+    assert events[0]["severity"] == "medium"
     assert repository.recent(query="API key")[0]["path"] == "/metrics"
+    assert repository.recent(limit=1, offset=1)[0]["request_id"] == "request-1"
+
+
+def test_security_audit_route_requires_an_admin_user() -> None:
+    request = SimpleNamespace(state=SimpleNamespace(user_id="viewer"))
+
+    with pytest.raises(PermissionError, match="Administrator access required"):
+        security_audit(request, Settings(admin_user_ids="admin"))
+
+
+def test_security_audit_route_allows_an_admin_user() -> None:
+    request = SimpleNamespace(state=SimpleNamespace(user_id="admin"))
+
+    result = security_audit(request, Settings(admin_user_ids="admin"), limit=1, offset=0, query=None)
+
+    assert len(result) <= 1
