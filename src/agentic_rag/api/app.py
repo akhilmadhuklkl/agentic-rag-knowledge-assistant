@@ -24,6 +24,7 @@ from agentic_rag.observability import (
 )
 from agentic_rag.security.auth import authenticate_request
 from agentic_rag.security.request_context import (
+    apply_security_headers,
     classify_authentication_failure,
     is_public_health_path,
 )
@@ -101,6 +102,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if response.status_code >= 500:
             metrics.increment("http_errors_total")
         response.headers[REQUEST_ID_HEADER] = request_id
+        apply_security_headers(response)
         log_event("http_request_completed", method=request.method, path=request.url.path)
         return response
 

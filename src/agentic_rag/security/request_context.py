@@ -30,3 +30,13 @@ def classify_authentication_failure(error: PermissionError) -> AuthenticationFai
         severity="high" if invalid_key else "medium",
         reason=reason,
     )
+
+
+def apply_security_headers(response: object) -> None:
+    """Apply browser security headers to a response-like object."""
+
+    headers = response.headers
+    headers["X-Content-Type-Options"] = "nosniff"
+    headers["X-Frame-Options"] = "DENY"
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
