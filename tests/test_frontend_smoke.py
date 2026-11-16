@@ -43,6 +43,9 @@ def test_document_management_hooks_are_present() -> None:
     assert "/knowledge/documents/bulk-delete" in JAVASCRIPT
     assert "Delete selected" in JAVASCRIPT
     assert "danger-button" in JAVASCRIPT
+    assert 'id="recycle-list"' in HTML
+    assert "/knowledge/documents/recycle-bin" in JAVASCRIPT
+    assert "Restore & re-index" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:

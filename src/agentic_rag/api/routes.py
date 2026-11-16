@@ -316,6 +316,27 @@ async def upload_document(
     return DocumentResponse(**document.__dict__)
 
 
+@router.get("/documents/recycle-bin", response_model=list[str])
+def list_recycled_documents(storage: DocumentStorageService = Depends(get_document_storage)) -> list[str]:  # noqa: B008
+    """List documents that can be restored from the recycle bin."""
+
+    return storage.list_recycle_bin()
+
+
+@router.post("/documents/{name}/restore", response_model=DocumentResponse)
+def restore_document(
+    name: str,
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> DocumentResponse:
+    """Restore a recycled document and rebuild its indexed knowledge."""
+
+    document = storage.restore(name)
+    summary = indexing.index_file(document.path)
+    ingestion_repository.record("restored", document.name, f"Restored and indexed {summary.chunk_count} chunks")
+    return DocumentResponse(**document.__dict__)
+
+
 @router.delete("/documents/{name}", response_model=DocumentResponse)
 def delete_document(
     name: str,
@@ -326,7 +347,7 @@ def delete_document(
 
     document = storage.delete(name)
     indexing.vector_store.delete_source(document.path)
-    ingestion_repository.record("deleted", document.name, "Removed document and indexed knowledge")
+    ingestion_repository.record("deleted", document.name, "Moved document to recycle bin and removed indexed knowledge")
     return DocumentResponse(**document.__dict__)
 
 
@@ -349,7 +370,7 @@ def bulk_delete_documents(
         try:
             removed = storage.delete(name)
             indexing.vector_store.delete_source(removed.path)
-            ingestion_repository.record("deleted", removed.name, "Bulk removal from storage and indexed knowledge")
+            ingestion_repository.record("deleted", removed.name, "Moved document to recycle bin and removed indexed knowledge")
             deleted.append(DocumentResponse(**removed.__dict__))
         except (FileNotFoundError, OSError, ValueError) as error:
             errors.append(f"{name}: {error}")

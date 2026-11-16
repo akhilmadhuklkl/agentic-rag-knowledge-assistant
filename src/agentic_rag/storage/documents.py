@@ -25,7 +25,7 @@ class StoredDocument:
 class DocumentStorageService:
     """Store and list documents under one controlled root directory."""
 
-    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000, repository: Any | None = None, scanner: Any | None = None, quarantine_root: str | Path | None = None, quarantine_audit: Any | None = None) -> None:
+    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000, repository: Any | None = None, scanner: Any | None = None, quarantine_root: str | Path | None = None, quarantine_audit: Any | None = None, recycle_root: str | Path | None = None) -> None:
         if max_size_bytes <= 0:
             raise ValueError("max_size_bytes must be positive")
         self.root = Path(root)
@@ -34,6 +34,7 @@ class DocumentStorageService:
         self.scanner = scanner or BasicDocumentScanner()
         self.quarantine_root = Path(quarantine_root) if quarantine_root else self.root.parent / "quarantine"
         self.quarantine_audit = quarantine_audit
+        self.recycle_root = Path(recycle_root) if recycle_root else self.root.parent / "recycle_bin"
         self.root.mkdir(parents=True, exist_ok=True)
 
     def save(self, filename: str, content: bytes) -> StoredDocument:
@@ -114,16 +115,43 @@ class DocumentStorageService:
         ]
 
     def delete(self, name: str) -> StoredDocument:
-        """Delete one stored document and return its metadata."""
+        """Move one stored document to the recycle bin and return its metadata."""
 
         path = self.root / self._safe_filename(name)
         if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             raise FileNotFoundError(name)
         document = self._metadata(path)
-        path.unlink()
+        self.recycle_root.mkdir(parents=True, exist_ok=True)
+        destination = self.recycle_root / path.name
+        if destination.exists():
+            destination.unlink()
+        path.replace(destination)
         if self.repository:
             self.repository.delete_document(document.name)
             self.repository.delete_fingerprint(document.path)
+        return document
+
+    def list_recycle_bin(self) -> list[str]:
+        """List documents available for restoration."""
+
+        if not self.recycle_root.is_dir():
+            return []
+        return sorted(path.name for path in self.recycle_root.iterdir() if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS)
+
+    def restore(self, name: str) -> StoredDocument:
+        """Restore one recycled document back into active storage."""
+
+        safe_name = self._safe_filename(name)
+        source = self.recycle_root / safe_name
+        destination = self.root / safe_name
+        if not source.is_file() or source.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            raise FileNotFoundError(name)
+        if destination.exists():
+            raise FileExistsError(f"A document named '{safe_name}' already exists")
+        source.replace(destination)
+        document = self._metadata(destination)
+        if self.repository:
+            self.repository.upsert_document(document)
         return document
 
     @staticmethod

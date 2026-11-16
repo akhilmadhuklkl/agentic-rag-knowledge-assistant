@@ -60,3 +60,18 @@ def test_quarantine_cleanup_cannot_escape_quarantine_root(tmp_path) -> None:
     assert service.delete_quarantined("../" + name)
     assert service.list_quarantine() == []
     assert not service.delete_quarantined("missing.bin")
+
+
+def test_deleted_document_can_be_restored_from_recycle_bin(tmp_path) -> None:
+    service = DocumentStorageService(tmp_path / "documents", recycle_root=tmp_path / "recycle")
+    saved = service.save("policy.txt", b"Refunds are available within 30 days.")
+
+    removed = service.delete(saved.name)
+    assert removed.name == "policy.txt"
+    assert service.list_documents() == []
+    assert service.list_recycle_bin() == ["policy.txt"]
+
+    restored = service.restore("policy.txt")
+    assert restored.name == "policy.txt"
+    assert service.list_recycle_bin() == []
+    assert service.list_documents()[0].name == "policy.txt"
