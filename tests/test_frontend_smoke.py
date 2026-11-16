@@ -23,6 +23,7 @@ def test_document_management_hooks_are_present() -> None:
     assert "deleteDocument" in JAVASCRIPT
     assert "document will be re-indexed" in JAVASCRIPT
     assert "metadata-history-dialog" in JAVASCRIPT
+    assert "Updating…" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
