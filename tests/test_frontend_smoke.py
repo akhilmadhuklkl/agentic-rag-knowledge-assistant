@@ -32,6 +32,7 @@ def test_document_management_hooks_are_present() -> None:
     assert "Select all matching" in JAVASCRIPT
     assert "aria-label" in JAVASCRIPT
     assert "external-source-link" in JAVASCRIPT
+    assert "source-domain" in JAVASCRIPT
     assert "web-search-toggle" in JAVASCRIPT
     assert "Web results come from external sources" in JAVASCRIPT
     assert "savedSelection.clear" in JAVASCRIPT
