@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -49,6 +50,13 @@ def test_sqlite_operational_repository_persists_readiness_snapshots(tmp_path: Pa
     snapshot = repository.recent(limit=1)[0]
     assert snapshot["status"] == "ready"
     assert snapshot["error_rate"] == 0.02
+
+    with sqlite3.connect(tmp_path / "assistant.db") as connection:
+        connection.execute(
+            "UPDATE operational_snapshots SET created_at = '2000-01-01 00:00:00'"
+        )
+    assert repository.purge_older_than(1) == 1
+    assert repository.recent() == []
 
 
 def test_security_audit_route_requires_an_admin_user() -> None:

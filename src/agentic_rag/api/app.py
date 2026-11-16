@@ -138,6 +138,7 @@ def create_app() -> FastAPI:
             status = "degraded"
         try:
             operational_repository.record(status, time.monotonic() - started_at, error_rate)
+            operational_repository.purge_older_than(settings.audit_retention_days)
         except sqlite3.Error:
             logging.getLogger("agentic_rag").warning("Operational snapshot could not be persisted")
         return {
