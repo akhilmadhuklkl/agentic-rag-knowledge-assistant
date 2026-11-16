@@ -1,5 +1,6 @@
 import pytest
 
+from agentic_rag.security.rate_limit import InMemoryRateLimiter
 from agentic_rag.security.request_context import (
     apply_security_headers,
     classify_authentication_failure,
@@ -39,3 +40,11 @@ def test_security_headers_are_applied() -> None:
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+
+def test_rate_limiter_rejects_requests_after_limit() -> None:
+    limiter = InMemoryRateLimiter()
+
+    assert limiter.allow("client", 2)
+    assert limiter.allow("client", 2)
+    assert not limiter.allow("client", 2)

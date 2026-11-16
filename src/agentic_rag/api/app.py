@@ -23,6 +23,7 @@ from agentic_rag.observability import (
     set_request_id,
 )
 from agentic_rag.security.auth import authenticate_request
+from agentic_rag.security.rate_limit import InMemoryRateLimiter
 from agentic_rag.security.request_context import (
     apply_security_headers,
     classify_authentication_failure,
@@ -41,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     audit_repository = SQLiteAuditRepository(settings.database_path)
     operational_repository = SQLiteOperationalRepository(settings.database_path)
+    rate_limiter = InMemoryRateLimiter()
     started_at = time.monotonic()
     configure_logging(settings.log_level)
     app = FastAPI(title=settings.app_name, version=__version__)
@@ -68,6 +70,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request_id = request.headers.get(REQUEST_ID_HEADER) or create_request_id()
         set_request_id(request_id)
         if not is_public_health_path(request.url.path):
+            client_key = request.client.host if request.client else "unknown"
+            limit = settings.upload_rate_limit_per_minute if request.url.path.endswith("/documents/upload") else settings.rate_limit_per_minute
+            if not rate_limiter.allow(client_key, limit):
+                metrics.increment("http_requests_total")
+                metrics.increment("http_errors_total")
+                metrics.increment("rate_limit_rejections_total")
+                response = JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"}, headers={"Retry-After": "60"})
+                response.headers[REQUEST_ID_HEADER] = request_id
+                apply_security_headers(response)
+                return response
             try:
                 identity = authenticate_request(dict(request.headers), settings)
             except PermissionError as error:

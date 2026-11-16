@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     audit_retention_days: int = 30
     admin_user_ids: str = ""
     error_rate_alert_threshold: float = 0.1
+    rate_limit_per_minute: int = 120
+    upload_rate_limit_per_minute: int = 10
 
     @field_validator("audit_retention_days")
     @classmethod
