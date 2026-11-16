@@ -2,6 +2,7 @@
 
 import logging
 import sqlite3
+import time
 from pathlib import Path
 
 import httpx
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
             "No admin_user_ids configured; administrative audit views are unavailable"
         )
     audit_repository = SQLiteAuditRepository(settings.database_path)
+    started_at = time.monotonic()
     configure_logging(settings.log_level)
     app = FastAPI(title=settings.app_name, version=__version__)
     app.include_router(knowledge_router)
@@ -119,7 +121,17 @@ def create_app() -> FastAPI:
         else:
             components["ollama"] = "not_required"
         status = "ready" if all(value in {"ready", "not_required"} for value in components.values()) else "degraded"
-        return {"status": status, "environment": settings.app_env, "components": components}
+        duration = metrics.snapshot().get("durations", {}).get("assistant_workflow", {})
+        return {
+            "status": status,
+            "environment": settings.app_env,
+            "components": components,
+            "uptime_seconds": round(time.monotonic() - started_at, 1),
+            "latency": {
+                "sample_count": duration.get("count", 0),
+                "average_ms": duration.get("average_ms"),
+            },
+        }
 
     @app.get("/metrics", tags=["system"])
     def application_metrics() -> dict[str, object]:
