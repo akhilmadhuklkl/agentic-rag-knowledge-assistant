@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import httpx
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from agentic_rag.agents.orchestrator import AgentOrchestrator
@@ -131,10 +131,14 @@ def provider_health(settings: Settings = Depends(get_settings)) -> ProviderHealt
 
 
 @router.get("/security/audit", response_model=list[SecurityAuditEventResponse])
-def security_audit(limit: int = Query(default=20, ge=1, le=100), query: str | None = Query(default=None, max_length=100)) -> list[SecurityAuditEventResponse]:
+def security_audit(request: Request, settings: Settings = Depends(get_settings), limit: int = Query(default=20, ge=1, le=100), offset: int = Query(default=0, ge=0), query: str | None = Query(default=None, max_length=100)) -> list[SecurityAuditEventResponse]:  # noqa: B008
     """Return recent authentication audit events without sensitive headers."""
 
-    return [SecurityAuditEventResponse(**event) for event in audit_repository.recent(limit, query)]
+    user_id = getattr(getattr(request, "state", None), "user_id", "anonymous")
+    admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+    if admins and user_id not in admins:
+        raise PermissionError("Administrator access required")
+    return [SecurityAuditEventResponse(**event) for event in audit_repository.recent(limit, offset, query)]
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008

@@ -62,7 +62,11 @@ def create_app() -> FastAPI:
                     reason=str(error),
                 )
                 audit_repository.record(
-                    get_request_id(), request.method, request.url.path, str(error)
+                    get_request_id(),
+                    request.method,
+                    request.url.path,
+                    str(error),
+                    "high" if "API key" in str(error) else "medium",
                 )
                 audit_repository.purge_older_than(settings.audit_retention_days)
                 status_code = 401 if "API key" in str(error) else 403
@@ -72,6 +76,8 @@ def create_app() -> FastAPI:
                 user_id=identity.user_id,
                 workspace_id=identity.workspace_id,
             )
+            request.state.user_id = identity.user_id
+            request.state.workspace_id = identity.workspace_id
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request_id
         log_event("http_request_completed", method=request.method, path=request.url.path)

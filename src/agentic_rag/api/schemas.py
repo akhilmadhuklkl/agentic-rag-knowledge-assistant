@@ -86,6 +86,7 @@ class SecurityAuditEventResponse(BaseModel):
     method: str
     path: str
     reason: str
+    severity: Literal["low", "medium", "high"]
     created_at: str
 
 

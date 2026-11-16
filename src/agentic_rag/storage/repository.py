@@ -117,30 +117,33 @@ class SQLiteAuditRepository:
                 "method TEXT NOT NULL, path TEXT NOT NULL, reason TEXT NOT NULL, "
                 "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
             )
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(security_audit_events)").fetchall()}
+            if "severity" not in columns:
+                connection.execute("ALTER TABLE security_audit_events ADD COLUMN severity TEXT NOT NULL DEFAULT 'medium'")
 
-    def record(self, request_id: str | None, method: str, path: str, reason: str) -> None:
+    def record(self, request_id: str | None, method: str, path: str, reason: str, severity: str = "medium") -> None:
         with self._connect() as connection:
             connection.execute(
-                "INSERT INTO security_audit_events (request_id, method, path, reason) VALUES (?, ?, ?, ?)",
-                (request_id or "unknown", method, path, reason),
+                "INSERT INTO security_audit_events (request_id, method, path, reason, severity) VALUES (?, ?, ?, ?, ?)",
+                (request_id or "unknown", method, path, reason, severity),
             )
 
-    def recent(self, limit: int = 20, query: str | None = None) -> list[dict[str, str]]:
+    def recent(self, limit: int = 20, offset: int = 0, query: str | None = None) -> list[dict[str, str]]:
         with self._connect() as connection:
             if query:
                 pattern = f"%{query}%"
                 rows = connection.execute(
-                    "SELECT request_id, method, path, reason, created_at FROM security_audit_events "
-                    "WHERE path LIKE ? OR reason LIKE ? ORDER BY id DESC LIMIT ?",
-                    (pattern, pattern, limit),
+                    "SELECT request_id, method, path, reason, severity, created_at FROM security_audit_events "
+                    "WHERE path LIKE ? OR reason LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?",
+                    (pattern, pattern, limit, offset),
                 ).fetchall()
             else:
                 rows = connection.execute(
-                    "SELECT request_id, method, path, reason, created_at "
-                    "FROM security_audit_events ORDER BY id DESC LIMIT ?",
-                    (limit,),
+                    "SELECT request_id, method, path, reason, severity, created_at "
+                    "FROM security_audit_events ORDER BY id DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
                 ).fetchall()
-        keys = ("request_id", "method", "path", "reason", "created_at")
+        keys = ("request_id", "method", "path", "reason", "severity", "created_at")
         return [dict(zip(keys, row, strict=True)) for row in rows]
 
     def purge_older_than(self, days: int) -> int:
