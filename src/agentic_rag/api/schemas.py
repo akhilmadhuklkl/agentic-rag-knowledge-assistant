@@ -31,6 +31,14 @@ class DocumentMetadataUpdate(BaseModel):
     freshness: Literal["current", "historical", "unspecified"]
 
 
+class BulkDocumentMetadataUpdate(BaseModel):
+    """Apply labels to several stored documents."""
+
+    names: list[str] = Field(min_length=1, max_length=100)
+    authority: Literal["authoritative", "standard", "legacy"]
+    freshness: Literal["current", "historical", "unspecified"]
+
+
 class DocumentListResponse(BaseModel):
     """Available stored documents."""
 

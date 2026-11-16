@@ -14,6 +14,7 @@ from agentic_rag.api.schemas import (
     AnswerRequest,
     AnswerResponse,
     AskResponse,
+    BulkDocumentMetadataUpdate,
     CitationResponse,
     CleanupResponse,
     ConversationListResponse,
@@ -252,6 +253,27 @@ def update_document_metadata(
     updated = StoredDocument(document.name, document.path, document.size_bytes, document.file_type, request.authority, request.freshness)
     ingestion_repository.record("metadata_updated", name, f"Authority={request.authority}; freshness={request.freshness}")
     return DocumentResponse(**updated.__dict__)
+
+
+@router.patch("/documents/metadata", response_model=list[DocumentResponse])
+def update_documents_metadata(
+    request: BulkDocumentMetadataUpdate,
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> list[DocumentResponse]:
+    """Apply labels and refresh indexes for several documents."""
+
+    available = {item.name: item for item in document_repository.list_documents()}
+    updated_documents: list[DocumentResponse] = []
+    for name in request.names:
+        document = available.get(name)
+        if document is None:
+            raise FileNotFoundError(name)
+        document_repository.update_metadata(name, request.authority, request.freshness)
+        indexing.reindex_file(document.path)
+        indexing.vector_store.update_source_metadata(document.path, request.authority, request.freshness)
+        ingestion_repository.record("metadata_updated", name, f"Authority={request.authority}; freshness={request.freshness}")
+        updated_documents.append(DocumentResponse(**StoredDocument(document.name, document.path, document.size_bytes, document.file_type, request.authority, request.freshness).__dict__))
+    return updated_documents
 
 
 def _stored_document_path(name: str, storage: DocumentStorageService) -> Path:
