@@ -65,6 +65,9 @@ def create_app() -> FastAPI:
             try:
                 identity = authenticate_request(dict(request.headers), settings)
             except PermissionError as error:
+                metrics.increment("http_requests_total")
+                metrics.increment("http_errors_total")
+                metrics.increment("authentication_failures_total")
                 log_event(
                     "request_authentication_failed",
                     method=request.method,
@@ -89,6 +92,9 @@ def create_app() -> FastAPI:
             request.state.user_id = identity.user_id
             request.state.workspace_id = identity.workspace_id
         response = await call_next(request)
+        metrics.increment("http_requests_total")
+        if response.status_code >= 500:
+            metrics.increment("http_errors_total")
         response.headers[REQUEST_ID_HEADER] = request_id
         log_event("http_request_completed", method=request.method, path=request.url.path)
         return response
@@ -122,6 +128,13 @@ def create_app() -> FastAPI:
             components["ollama"] = "not_required"
         status = "ready" if all(value in {"ready", "not_required"} for value in components.values()) else "degraded"
         duration = metrics.snapshot().get("durations", {}).get("assistant_workflow", {})
+        counters = metrics.snapshot().get("counters", {})
+        request_count = int(counters.get("http_requests_total", 0))
+        error_count = int(counters.get("http_errors_total", 0))
+        error_rate = round(error_count / request_count, 4) if request_count else 0.0
+        alert = error_rate >= settings.error_rate_alert_threshold and request_count > 0
+        if alert:
+            status = "degraded"
         return {
             "status": status,
             "environment": settings.app_env,
@@ -131,6 +144,10 @@ def create_app() -> FastAPI:
                 "sample_count": duration.get("count", 0),
                 "average_ms": duration.get("average_ms"),
             },
+            "error_rate": error_rate,
+            "error_count": error_count,
+            "request_count": request_count,
+            "alert": "Elevated error rate" if alert else None,
         }
 
     @app.get("/metrics", tags=["system"])

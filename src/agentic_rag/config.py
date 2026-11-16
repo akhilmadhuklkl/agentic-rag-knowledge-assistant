@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     web_search_allowed_domains: str = ""
     audit_retention_days: int = 30
     admin_user_ids: str = ""
+    error_rate_alert_threshold: float = 0.1
 
     @field_validator("audit_retention_days")
     @classmethod
@@ -59,6 +60,13 @@ class Settings(BaseSettings):
             if not identifier.replace("_", "a").replace("-", "a").isalnum():
                 raise ValueError("admin_user_ids must contain only letters, numbers, '_' or '-'")
         return ",".join(identifiers)
+
+    @field_validator("error_rate_alert_threshold")
+    @classmethod
+    def validate_error_rate_alert_threshold(cls, value: float) -> float:
+        if not 0 <= value <= 1:
+            raise ValueError("error_rate_alert_threshold must be between 0 and 1")
+        return value
 
     model_config = SettingsConfigDict(
         env_file=".env",

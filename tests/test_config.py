@@ -21,3 +21,8 @@ def test_settings_validate_admin_user_ids() -> None:
     assert settings.admin_user_ids == "admin_1,admin-2"
     with pytest.raises(ValueError, match="admin_user_ids"):
         Settings(_env_file=None, admin_user_ids="admin@example.com")
+
+
+def test_settings_validate_error_rate_threshold() -> None:
+    with pytest.raises(ValueError, match="error_rate_alert_threshold"):
+        Settings(_env_file=None, error_rate_alert_threshold=1.1)
