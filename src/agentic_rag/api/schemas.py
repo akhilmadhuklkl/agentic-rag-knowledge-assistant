@@ -46,6 +46,19 @@ class BulkDocumentMetadataResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class BulkDocumentDeleteRequest(BaseModel):
+    """Select documents to remove from storage and the knowledge index."""
+
+    names: list[str] = Field(min_length=1, max_length=100)
+
+
+class BulkDocumentDeleteResponse(BaseModel):
+    """Per-document result summary for a batch deletion."""
+
+    deleted: list[DocumentResponse] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
 class BulkDocumentMetadataUndo(BaseModel):
     """Select documents whose latest metadata edit should be undone."""
 

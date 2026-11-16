@@ -17,6 +17,8 @@ from agentic_rag.api.schemas import (
     AnswerRequest,
     AnswerResponse,
     AskResponse,
+    BulkDocumentDeleteRequest,
+    BulkDocumentDeleteResponse,
     BulkDocumentMetadataResponse,
     BulkDocumentMetadataUndo,
     BulkDocumentMetadataUpdate,
@@ -326,6 +328,32 @@ def delete_document(
     indexing.vector_store.delete_source(document.path)
     ingestion_repository.record("deleted", document.name, "Removed document and indexed knowledge")
     return DocumentResponse(**document.__dict__)
+
+
+@router.post("/documents/bulk-delete", response_model=BulkDocumentDeleteResponse)
+def bulk_delete_documents(
+    request: BulkDocumentDeleteRequest,
+    storage: DocumentStorageService = Depends(get_document_storage),  # noqa: B008
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> BulkDocumentDeleteResponse:
+    """Delete selected documents and their indexed knowledge safely."""
+
+    available = {item.name: item for item in document_repository.list_documents()}
+    deleted: list[DocumentResponse] = []
+    errors: list[str] = []
+    for name in dict.fromkeys(request.names):
+        document = available.get(name)
+        if document is None:
+            errors.append(f"{name}: document not found")
+            continue
+        try:
+            removed = storage.delete(name)
+            indexing.vector_store.delete_source(removed.path)
+            ingestion_repository.record("deleted", removed.name, "Bulk removal from storage and indexed knowledge")
+            deleted.append(DocumentResponse(**removed.__dict__))
+        except (FileNotFoundError, OSError, ValueError) as error:
+            errors.append(f"{name}: {error}")
+    return BulkDocumentDeleteResponse(deleted=deleted, errors=errors)
 
 
 @router.patch("/documents/{name}/metadata", response_model=DocumentResponse)

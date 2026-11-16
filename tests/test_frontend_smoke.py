@@ -40,6 +40,9 @@ def test_document_management_hooks_are_present() -> None:
     assert "savedSelection.clear" in JAVASCRIPT
     assert "select-none-metadata" in JAVASCRIPT
     assert "metadata-selection-count" in JAVASCRIPT
+    assert "/knowledge/documents/bulk-delete" in JAVASCRIPT
+    assert "Delete selected" in JAVASCRIPT
+    assert "danger-button" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
