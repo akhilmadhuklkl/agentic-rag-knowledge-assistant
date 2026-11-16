@@ -153,6 +153,16 @@ def admin_settings(request: Request, settings: Settings = Depends(get_settings))
     )
 
 
+@router.get("/security/quarantine", response_model=list[IngestionActivityResponse])
+def quarantine_events(request: Request, settings: Settings = Depends(get_settings), limit: int = Query(default=20, ge=1, le=100)) -> list[IngestionActivityResponse]:  # noqa: B008
+    """Return recent quarantined-upload events to administrators."""
+
+    admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+    _require_admin(request, admins)
+    events = [event for event in ingestion_repository.recent(limit=100) if event["action"] == "quarantined"]
+    return [IngestionActivityResponse(**event) for event in events[:limit]]
+
+
 def _require_admin(request: Request, admins: set[str]) -> None:
     user_id = getattr(getattr(request, "state", None), "user_id", "anonymous")
     if admins and user_id not in admins:
@@ -178,6 +188,7 @@ def get_document_storage(settings: Settings = Depends(get_settings)) -> Document
         settings.document_storage_path,
         max_size_bytes=settings.max_upload_size_bytes,
         repository=document_repository,
+        quarantine_audit=ingestion_repository,
     )
 
 

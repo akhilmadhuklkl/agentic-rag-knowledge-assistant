@@ -34,10 +34,19 @@ def test_upload_rejects_empty_and_invalid_pdf_content() -> None:
 
 
 def test_suspicious_upload_is_quarantined(tmp_path) -> None:
-    service = DocumentStorageService(tmp_path / "documents", quarantine_root=tmp_path / "quarantine")
+    class Audit:
+        def __init__(self) -> None:
+            self.events = []
+
+        def record(self, action: str, name: str, detail: str) -> None:
+            self.events.append((action, name, detail))
+
+    audit = Audit()
+    service = DocumentStorageService(tmp_path / "documents", quarantine_root=tmp_path / "quarantine", quarantine_audit=audit)
 
     with pytest.raises(ValueError, match="Upload quarantined"):
         service.save("payload.txt", b"MZ executable payload")
 
     assert not list((tmp_path / "documents").iterdir())
     assert len(list((tmp_path / "quarantine").iterdir())) == 1
+    assert audit.events[0][0] == "quarantined"

@@ -25,7 +25,7 @@ class StoredDocument:
 class DocumentStorageService:
     """Store and list documents under one controlled root directory."""
 
-    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000, repository: Any | None = None, scanner: Any | None = None, quarantine_root: str | Path | None = None) -> None:
+    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000, repository: Any | None = None, scanner: Any | None = None, quarantine_root: str | Path | None = None, quarantine_audit: Any | None = None) -> None:
         if max_size_bytes <= 0:
             raise ValueError("max_size_bytes must be positive")
         self.root = Path(root)
@@ -33,6 +33,7 @@ class DocumentStorageService:
         self.repository = repository
         self.scanner = scanner or BasicDocumentScanner()
         self.quarantine_root = Path(quarantine_root) if quarantine_root else self.root.parent / "quarantine"
+        self.quarantine_audit = quarantine_audit
         self.root.mkdir(parents=True, exist_ok=True)
 
     def save(self, filename: str, content: bytes) -> StoredDocument:
@@ -60,6 +61,8 @@ class DocumentStorageService:
         scan = self.scanner.scan(safe_name, content)
         if not scan.safe:
             self._quarantine(safe_name, content)
+            if self.quarantine_audit:
+                self.quarantine_audit.record("quarantined", safe_name, scan.reason)
             raise ValueError(f"Upload quarantined: {scan.reason}")
 
         destination = self.root / safe_name
