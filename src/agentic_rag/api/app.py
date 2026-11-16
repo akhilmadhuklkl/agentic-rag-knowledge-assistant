@@ -25,6 +25,8 @@ from agentic_rag.observability import (
 from agentic_rag.security.auth import authenticate_request
 from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteOperationalRepository
 
+PUBLIC_HEALTH_PATHS = frozenset({"/health", "/health/readiness"})
+
 
 def create_app() -> FastAPI:
     """Create the API application without relying on global UI state."""
@@ -62,7 +64,7 @@ def create_app() -> FastAPI:
     async def request_context(request: Request, call_next):
         request_id = request.headers.get(REQUEST_ID_HEADER) or create_request_id()
         set_request_id(request_id)
-        if request.url.path not in {"/health", "/health/readiness"}:
+        if request.url.path not in PUBLIC_HEALTH_PATHS:
             try:
                 identity = authenticate_request(dict(request.headers), settings)
             except PermissionError as error:

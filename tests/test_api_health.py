@@ -1,4 +1,4 @@
-from agentic_rag.api.app import create_app
+from agentic_rag.api.app import PUBLIC_HEALTH_PATHS, create_app
 from agentic_rag.api.routes import provider_health
 from agentic_rag.config import Settings
 
@@ -22,3 +22,9 @@ def test_readiness_endpoint_is_registered() -> None:
     app = create_app()
 
     assert any(route.path == "/health/readiness" for route in app.routes)
+
+
+def test_diagnostics_and_history_are_not_public_health_paths() -> None:
+    assert PUBLIC_HEALTH_PATHS == {"/health", "/health/readiness"}
+    assert "/health/history" not in PUBLIC_HEALTH_PATHS
+    assert "/health/diagnostics" not in PUBLIC_HEALTH_PATHS
