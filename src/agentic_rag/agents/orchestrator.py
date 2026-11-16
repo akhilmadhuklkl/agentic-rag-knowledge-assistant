@@ -83,7 +83,7 @@ class AgentOrchestrator:
                 file_type="web",
                 page_number=None,
                 chunk_index=index,
-                authority="standard",
+                authority="allowlisted" if getattr(self.web_search_tool, "allowed_domains", set()) else "unrestricted",
                 freshness="current",
             )
             results.append(RetrievalResult(chunk, 0.5, 0.0, 0.0))
