@@ -54,6 +54,7 @@ def test_health_and_activity_hooks_are_present() -> None:
     assert 'id="knowledge-health"' in HTML
     assert 'id="ingestion-activity"' in HTML
     assert "/health" in JAVASCRIPT
+    assert "/health/readiness" in JAVASCRIPT
     assert "errors-only" in JAVASCRIPT
 
 

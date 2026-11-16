@@ -59,7 +59,7 @@ def create_app() -> FastAPI:
     async def request_context(request: Request, call_next):
         request_id = request.headers.get(REQUEST_ID_HEADER) or create_request_id()
         set_request_id(request_id)
-        if request.url.path != "/health":
+        if request.url.path not in {"/health", "/health/readiness"}:
             try:
                 identity = authenticate_request(dict(request.headers), settings)
             except PermissionError as error:
