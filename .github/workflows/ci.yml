@@ -28,6 +28,9 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
+      - name: Validate API security contract
+        run: python -m pytest tests/test_api_contracts.py tests/test_api_health.py tests/test_request_context.py -q
+
       - name: Run lint
         run: ruff check src tests
 
