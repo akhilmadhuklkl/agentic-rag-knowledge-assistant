@@ -3,6 +3,7 @@ from pathlib import Path
 from agentic_rag.agents.models import PlanAction
 from agentic_rag.agents.orchestrator import AgentOrchestrator
 from agentic_rag.indexing.service import DocumentIndexingService
+from agentic_rag.tools.web_search import WebSearchResult
 
 FIXTURES = Path(__file__).parent / "fixtures"
 RUNTIME = Path(__file__).parent / ".runtime"
@@ -60,3 +61,17 @@ def test_orchestrator_accepts_a_relevant_paraphrase() -> None:
 
     assert result.needs_clarification is False
     assert result.results[0].chunk.source_name == "policy.md"
+
+
+def test_orchestrator_uses_web_search_only_after_document_retrieval_fails() -> None:
+    class FakeWebSearch:
+        def search(self, query: str) -> list[WebSearchResult]:
+            return [WebSearchResult("External source", "https://example.com", "External evidence")]
+
+    result = build_orchestrator()
+    result.web_search_tool = FakeWebSearch()
+    response = result.run("What are vacation rules?", top_k=1)
+
+    assert response.needs_clarification is False
+    assert response.results[0].chunk.source_name == "External source"
+    assert response.results[0].chunk.file_type == "web"

@@ -62,6 +62,7 @@ from agentic_rag.storage.repository import (
     SQLiteIngestionRepository,
     SQLiteLatencyRepository,
 )
+from agentic_rag.tools.web_search import WebSearchTool
 from agentic_rag.workflow.service import KnowledgeAssistantService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -501,7 +502,7 @@ def ask(
     contextual_query = conversation_store.contextual_query(request.query, history)
     settings = get_settings()
     assistant = KnowledgeAssistantService(
-        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap),
+        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap, web_search_tool=WebSearchTool(timeout=settings.web_search_timeout_seconds) if settings.web_search_enabled else None),
         GroundedAnswerService(build_answer_model(get_settings())),
     )
     semantic_weight = _search_mode_weight(request.search_mode, settings.retrieval_semantic_weight)

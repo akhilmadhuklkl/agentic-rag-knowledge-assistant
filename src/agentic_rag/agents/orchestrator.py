@@ -2,7 +2,9 @@
 
 from agentic_rag.agents.models import OrchestrationResult, PlanAction, QueryPlan
 from agentic_rag.indexing.service import DocumentIndexingService
+from agentic_rag.ingestion.models import DocumentChunk
 from agentic_rag.retrieval.service import RetrievalResult
+from agentic_rag.tools.web_search import WebSearchTool
 
 
 class AgentOrchestrator:
@@ -14,6 +16,7 @@ class AgentOrchestrator:
         max_attempts: int = 2,
         minimum_evidence_score: float = 0.4,
         minimum_lexical_overlap: float = 0.3,
+        web_search_tool: WebSearchTool | None = None,
     ) -> None:
         if max_attempts <= 0:
             raise ValueError("max_attempts must be positive")
@@ -25,6 +28,7 @@ class AgentOrchestrator:
         self.max_attempts = max_attempts
         self.minimum_evidence_score = minimum_evidence_score
         self.minimum_lexical_overlap = minimum_lexical_overlap
+        self.web_search_tool = web_search_tool
 
     def plan(self, question: str) -> QueryPlan:
         """Create a simple plan from the user question."""
@@ -61,7 +65,29 @@ class AgentOrchestrator:
             refined_query = self._refine_query(plan.query)
             results = self._reliable_results(refined_query, top_k, semantic_weight, file_type)
             attempts += 1
+        if not results and self.web_search_tool is not None:
+            results = self._web_results(plan.query)
+            attempts += 1
         return OrchestrationResult(plan, results, attempts, not results)
+
+    def _web_results(self, query: str) -> list[RetrievalResult]:
+        """Convert bounded external results into citation-compatible evidence."""
+
+        results: list[RetrievalResult] = []
+        for index, item in enumerate(self.web_search_tool.search(query), start=1):
+            chunk = DocumentChunk(
+                chunk_id=f"web:{index}",
+                text=item.snippet,
+                source_path=item.url,
+                source_name=item.title,
+                file_type="web",
+                page_number=None,
+                chunk_index=index,
+                authority="standard",
+                freshness="current",
+            )
+            results.append(RetrievalResult(chunk, 0.5, 0.0, 0.0))
+        return results
 
     def _merge_multi_query_results(
         self,
