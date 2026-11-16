@@ -18,6 +18,7 @@ data/
 data/vectorstore/
 data/uploads/
 logs/
+uvicorn-live*.log
 tests/.runtime/
 coverage.xml
 htmlcov/
