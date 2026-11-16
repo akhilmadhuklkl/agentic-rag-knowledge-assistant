@@ -31,3 +31,13 @@ def test_upload_rejects_empty_and_invalid_pdf_content() -> None:
         service.save("empty.txt", b"")
     with pytest.raises(ValueError, match="signature is invalid"):
         service.save("document.pdf", b"not a pdf")
+
+
+def test_suspicious_upload_is_quarantined(tmp_path) -> None:
+    service = DocumentStorageService(tmp_path / "documents", quarantine_root=tmp_path / "quarantine")
+
+    with pytest.raises(ValueError, match="Upload quarantined"):
+        service.save("payload.txt", b"MZ executable payload")
+
+    assert not list((tmp_path / "documents").iterdir())
+    assert len(list((tmp_path / "quarantine").iterdir())) == 1

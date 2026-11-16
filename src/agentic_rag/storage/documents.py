@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from agentic_rag.ingestion.service import SUPPORTED_EXTENSIONS
+from agentic_rag.security.file_scan import BasicDocumentScanner
 
 
 @dataclass(frozen=True)
@@ -24,12 +25,14 @@ class StoredDocument:
 class DocumentStorageService:
     """Store and list documents under one controlled root directory."""
 
-    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000, repository: Any | None = None) -> None:
+    def __init__(self, root: str | Path = "data/documents", max_size_bytes: int = 10_000_000, repository: Any | None = None, scanner: Any | None = None, quarantine_root: str | Path | None = None) -> None:
         if max_size_bytes <= 0:
             raise ValueError("max_size_bytes must be positive")
         self.root = Path(root)
         self.max_size_bytes = max_size_bytes
         self.repository = repository
+        self.scanner = scanner or BasicDocumentScanner()
+        self.quarantine_root = Path(quarantine_root) if quarantine_root else self.root.parent / "quarantine"
         self.root.mkdir(parents=True, exist_ok=True)
 
     def save(self, filename: str, content: bytes) -> StoredDocument:
@@ -54,6 +57,10 @@ class DocumentStorageService:
                 content.decode("utf-8")
             except UnicodeDecodeError as error:
                 raise ValueError("text document must be valid UTF-8") from error
+        scan = self.scanner.scan(safe_name, content)
+        if not scan.safe:
+            self._quarantine(safe_name, content)
+            raise ValueError(f"Upload quarantined: {scan.reason}")
 
         destination = self.root / safe_name
         if destination.exists():
@@ -67,6 +74,14 @@ class DocumentStorageService:
         if self.repository:
             self.repository.upsert_document(document)
         return document
+
+    def _quarantine(self, filename: str, content: bytes) -> Path:
+        """Store a rejected upload outside the indexed document root."""
+
+        self.quarantine_root.mkdir(parents=True, exist_ok=True)
+        destination = self.quarantine_root / f"{hashlib.sha256(content).hexdigest()}-{Path(filename).name}"
+        destination.write_bytes(content)
+        return destination
 
     def list_documents(self) -> list[StoredDocument]:
         """Return supported documents in stable filename order."""
