@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from agentic_rag import __version__
 from agentic_rag.api.routes import router as knowledge_router
-from agentic_rag.config import get_settings
+from agentic_rag.config import Settings, get_settings
 from agentic_rag.metrics import metrics
 from agentic_rag.observability import (
     REQUEST_ID_HEADER,
@@ -30,10 +30,10 @@ from agentic_rag.security.request_context import (
 from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteOperationalRepository
 
 
-def create_app() -> FastAPI:
+def create_app(settings: Settings | None = None) -> FastAPI:
     """Create the API application without relying on global UI state."""
 
-    settings = get_settings()
+    settings = settings or get_settings()
     if settings.app_env.lower() != "development" and not settings.admin_user_ids:
         logging.getLogger("agentic_rag").warning(
             "No admin_user_ids configured; administrative audit views are unavailable"
