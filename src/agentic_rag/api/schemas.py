@@ -261,6 +261,7 @@ class CitationResponse(BaseModel):
     freshness: str = "unspecified"
     file_type: str = "document"
     source_url: str | None = None
+    source_quality: float = 0.0
 
 
 class AnswerResponse(BaseModel):

@@ -13,6 +13,7 @@ class WebSearchResult:
     title: str
     url: str
     snippet: str
+    trust_score: float = 0.5
 
 
 class WebSearchTool:
@@ -44,7 +45,9 @@ class WebSearchTool:
                 domain = urlparse(item["FirstURL"]).hostname or ""
                 if self.allowed_domains and domain.lower().removeprefix("www.") not in self.allowed_domains:
                     continue
-                results.append(WebSearchResult(item["Text"], item["FirstURL"], item["Text"]))
+                snippet = item["Text"].strip()
+                trust_score = 0.5 + (0.3 if self.allowed_domains else 0.0) + (0.2 if len(snippet) >= 40 else 0.0)
+                results.append(WebSearchResult(item["Text"], item["FirstURL"], snippet, min(1.0, trust_score)))
             if len(results) >= self.max_results:
                 break
         return results

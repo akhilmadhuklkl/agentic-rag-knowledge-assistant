@@ -20,6 +20,7 @@ class RetrievalResult:
     authority: str = "standard"
     freshness: str = "unspecified"
     file_type: str = "document"
+    source_quality: float = 0.0
 
 
 class HybridRetrievalService:

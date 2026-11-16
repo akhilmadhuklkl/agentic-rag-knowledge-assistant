@@ -86,7 +86,7 @@ class AgentOrchestrator:
                 authority="allowlisted" if getattr(self.web_search_tool, "allowed_domains", set()) else "unrestricted",
                 freshness="current",
             )
-            results.append(RetrievalResult(chunk, 0.5, 0.0, 0.0))
+            results.append(RetrievalResult(chunk, item.trust_score, 0.0, 0.0, source_quality=item.trust_score))
         return results
 
     def _merge_multi_query_results(

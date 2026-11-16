@@ -24,6 +24,7 @@ class Citation:
     freshness: str
     file_type: str
     source_url: str | None
+    source_quality: float
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,7 @@ class GroundedAnswerService:
                 freshness=result.freshness,
                 file_type=result.file_type,
                 source_url=result.chunk.source_path if result.file_type == "web" else None,
+                source_quality=round(result.source_quality, 4),
             )
             for index, result in enumerate(results, start=1)
         ]

@@ -67,3 +67,4 @@ def test_web_search_filters_results_by_allowed_domain(monkeypatch) -> None:
     results = WebSearchTool(allowed_domains={"trusted.example"}).search("domains")
 
     assert [result.url for result in results] == ["https://trusted.example/a"]
+    assert results[0].trust_score == 0.8
