@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,6 +43,22 @@ class Settings(BaseSettings):
     web_search_allowed_domains: str = ""
     audit_retention_days: int = 30
     admin_user_ids: str = ""
+
+    @field_validator("audit_retention_days")
+    @classmethod
+    def validate_audit_retention_days(cls, value: int) -> int:
+        if not 1 <= value <= 3650:
+            raise ValueError("audit_retention_days must be between 1 and 3650")
+        return value
+
+    @field_validator("admin_user_ids")
+    @classmethod
+    def validate_admin_user_ids(cls, value: str) -> str:
+        identifiers = [item.strip() for item in value.split(",") if item.strip()]
+        for identifier in identifiers:
+            if not identifier.replace("_", "a").replace("-", "a").isalnum():
+                raise ValueError("admin_user_ids must contain only letters, numbers, '_' or '-'")
+        return ",".join(identifiers)
 
     model_config = SettingsConfigDict(
         env_file=".env",

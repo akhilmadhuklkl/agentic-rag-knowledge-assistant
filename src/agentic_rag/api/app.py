@@ -1,5 +1,7 @@
 """FastAPI application entry point."""
 
+import logging
+
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -25,6 +27,10 @@ def create_app() -> FastAPI:
     """Create the API application without relying on global UI state."""
 
     settings = get_settings()
+    if settings.app_env.lower() != "development" and not settings.admin_user_ids:
+        logging.getLogger("agentic_rag").warning(
+            "No admin_user_ids configured; administrative audit views are unavailable"
+        )
     audit_repository = SQLiteAuditRepository(settings.database_path)
     configure_logging(settings.log_level)
     app = FastAPI(title=settings.app_name, version=__version__)
