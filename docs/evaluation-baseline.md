@@ -6,10 +6,12 @@ This baseline was run through the real local pipeline: fixture ingestion, vector
 
 ## Multi-document benchmark
 
+The benchmark now contains 20 cases covering exact questions, paraphrases, distractor documents, authority conflicts, multi-hop questions, and refusal behavior.
+
 | Measure | Result |
 |---|---:|
-| Total cases | 9 |
-| Answerable cases | 8 |
+| Total cases | 20 |
+| Answerable cases | 19 |
 | Answerable retrieval | 100% |
 | Answerable citation accuracy | 100% |
 | Answer quality | 100% |
