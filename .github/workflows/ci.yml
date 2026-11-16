@@ -37,6 +37,11 @@ jobs:
       - name: Scan Python source for security issues
         run: python -m bandit -r src -q
 
+      - name: Scan repository for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run tests
         run: python -m pytest -q
 
