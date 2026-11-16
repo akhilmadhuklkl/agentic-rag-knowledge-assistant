@@ -22,6 +22,7 @@ class Citation:
     proximity_score: float
     authority: str
     freshness: str
+    file_type: str
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,7 @@ class GroundedAnswerService:
                 proximity_score=round(result.proximity_score, 4),
                 authority=result.authority,
                 freshness=result.freshness,
+                file_type=result.file_type,
             )
             for index, result in enumerate(results, start=1)
         ]

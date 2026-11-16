@@ -258,6 +258,7 @@ class CitationResponse(BaseModel):
     proximity_score: float = 0.0
     authority: str = "standard"
     freshness: str = "unspecified"
+    file_type: str = "document"
 
 
 class AnswerResponse(BaseModel):

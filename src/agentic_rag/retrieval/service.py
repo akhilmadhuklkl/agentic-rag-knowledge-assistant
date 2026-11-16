@@ -19,6 +19,7 @@ class RetrievalResult:
     proximity_score: float = 0.0
     authority: str = "standard"
     freshness: str = "unspecified"
+    file_type: str = "document"
 
 
 class HybridRetrievalService:
@@ -67,6 +68,7 @@ class HybridRetrievalService:
                 proximity_score=self._term_proximity_score(query, result.chunk),
                 authority=result.chunk.authority,
                 freshness=result.chunk.freshness,
+                file_type=result.chunk.file_type,
             )
             for result in candidates
         ]
@@ -79,6 +81,7 @@ class HybridRetrievalService:
                 proximity_score=result.proximity_score,
                 authority=result.authority,
                 freshness=result.freshness,
+                file_type=result.file_type,
             )
             for result in results
         ]
