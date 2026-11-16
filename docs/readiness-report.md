@@ -1,6 +1,6 @@
 # Product Readiness Report
 
-Audit date: 2026-11-15
+Audit date: 2026-11-16
 
 ## Overall status
 
@@ -26,16 +26,18 @@ Audit date: 2026-11-15
 - Request IDs, structured logs, metrics, and timing
 - Streamlit backup interface
 - Evaluation dataset and quality metrics
+- 15-case multi-document benchmark with multi-hop and conflict-resolution coverage
 - Separate answerable/refusal metrics and category-level scores
 - Historical evaluation trends and configurable quality gates
 - JSON and CSV evaluation report export
 - Runtime API, knowledge-base, and provider health indicators
 - Frontend smoke coverage and GitHub Actions CI
+- Document authority/freshness metadata, filters, editing, bulk operations, audit history, and undo
 
 ## Verification evidence
 
 ```text
-pytest: 78 passed
+pytest: 87 passed
 ruff: All checks passed
 frontend JavaScript syntax: passed
 git diff --check: passed
@@ -43,6 +45,17 @@ repository working tree: clean
 ```
 
 The local verification suite covers backend behavior and critical static frontend hooks. A live HTTP smoke test should be run whenever the local API is started; deployment verification is intentionally not part of this phase.
+
+## Final local checklist
+
+- [x] Primary FastAPI product UI is present
+- [x] Streamlit backup is preserved
+- [x] Upload, indexing, retrieval, citations, refusal, and conversations are covered
+- [x] Quality evaluation, trends, thresholds, categories, and exports are present
+- [x] Authority/freshness metadata and audit controls are present
+- [x] Frontend smoke tests and CI workflow are present
+- [x] Local tests, lint, JavaScript syntax, and diff checks pass
+- [ ] Production deployment, domains, secrets, rollback, and external monitoring — intentionally deferred
 
 ## Current limitations
 
