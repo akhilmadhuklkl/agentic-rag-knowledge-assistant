@@ -502,7 +502,7 @@ def ask(
     contextual_query = conversation_store.contextual_query(request.query, history)
     settings = get_settings()
     assistant = KnowledgeAssistantService(
-        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap, web_search_tool=WebSearchTool(timeout=settings.web_search_timeout_seconds) if settings.web_search_enabled and request.web_search else None),
+        AgentOrchestrator(service, minimum_evidence_score=settings.minimum_evidence_score, minimum_lexical_overlap=settings.minimum_lexical_overlap, web_search_tool=WebSearchTool(timeout=settings.web_search_timeout_seconds, allowed_domains={domain.strip() for domain in settings.web_search_allowed_domains.split(",") if domain.strip()}) if settings.web_search_enabled and request.web_search else None),
         GroundedAnswerService(build_answer_model(get_settings())),
     )
     semantic_weight = _search_mode_weight(request.search_mode, settings.retrieval_semantic_weight)

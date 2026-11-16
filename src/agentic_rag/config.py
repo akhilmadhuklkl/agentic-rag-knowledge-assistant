@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     llm_max_retries: int = 2
     web_search_enabled: bool = False
     web_search_timeout_seconds: float = 4.0
+    web_search_allowed_domains: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

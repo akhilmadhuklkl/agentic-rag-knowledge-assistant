@@ -49,3 +49,21 @@ def test_web_search_fails_closed_on_network_errors(monkeypatch) -> None:
     monkeypatch.setattr("agentic_rag.tools.web_search.urlopen", fail)
 
     assert WebSearchTool().search("offline question") == []
+
+
+def test_web_search_filters_results_by_allowed_domain(monkeypatch) -> None:
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps({"RelatedTopics": [{"Text": "Trusted", "FirstURL": "https://trusted.example/a"}, {"Text": "Other", "FirstURL": "https://other.example/b"}]}).encode()
+
+    monkeypatch.setattr("agentic_rag.tools.web_search.urlopen", lambda request, timeout: Response())
+
+    results = WebSearchTool(allowed_domains={"trusted.example"}).search("domains")
+
+    assert [result.url for result in results] == ["https://trusted.example/a"]

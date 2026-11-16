@@ -60,6 +60,8 @@ Set `LLM_PROVIDER=ollama` and `EMBEDDING_PROVIDER=ollama` in `.env`, then re-ind
 
 Retrieval tuning is controlled by `RETRIEVAL_SEMANTIC_WEIGHT`, `RETRIEVAL_RERANK_WEIGHT`, `MINIMUM_EVIDENCE_SCORE`, and `MINIMUM_LEXICAL_OVERLAP`. Increase rerank weight to favor query terms occurring close together; increase the minimum thresholds to require stronger evidence, with the trade-off that more questions may safely refuse.
 
+Web fallback is opt-in through `WEB_SEARCH_ENABLED=true`. Restrict it with `WEB_SEARCH_ALLOWED_DOMAINS=example.com,docs.example.com`; an empty allowlist permits results from the configured search provider.
+
 ## Backup and local data
 
 `streamlit_backup/` is intentionally preserved as a fallback UI. Do not remove it while the product frontend is evolving. Local runtime data is stored under `data/` and is ignored by Git; preserve it separately if conversations, uploaded files, or evaluation history need to survive a machine reset.
