@@ -37,9 +37,14 @@ class FakeIndexing:
 class FakeActivity:
     def __init__(self) -> None:
         self.event: tuple[str, str, str] | None = None
+        self.history: list[dict[str, str]] = []
 
     def record(self, action: str, name: str, detail: str) -> None:
         self.event = (action, name, detail)
+        self.history.insert(0, {"action": action, "document_name": name, "detail": detail, "created_at": "2026-11-16 00:00:00"})
+
+    def recent_for_document(self, name: str, limit: int = 20) -> list[dict[str, str]]:
+        return [item for item in self.history if item["document_name"] == name][:limit]
 
 
 def test_metadata_route_persists_and_reindexes_document(monkeypatch, tmp_path: Path) -> None:
@@ -99,3 +104,21 @@ def test_bulk_metadata_route_rejects_unknown_document(monkeypatch, tmp_path: Pat
 
     assert response.updated == []
     assert response.errors == ["missing.md: document not found"]
+
+
+def test_undo_metadata_route_restores_previous_labels(monkeypatch, tmp_path: Path) -> None:
+    path = str(tmp_path / "policy.md")
+    document = StoredDocument("policy.md", path, 10, "md", "standard", "unspecified")
+    repository = FakeRepository(document)
+    indexing = FakeIndexing()
+    activity = FakeActivity()
+    activity.record("metadata_updated", "policy.md", "Authority=standard->legacy; freshness=unspecified->historical")
+    monkeypatch.setattr(routes, "document_repository", repository)
+    monkeypatch.setattr(routes, "ingestion_repository", activity)
+
+    response = routes.undo_document_metadata("policy.md", indexing=indexing)
+
+    assert response.authority == "standard"
+    assert response.freshness == "unspecified"
+    assert repository.updated == ("policy.md", "standard", "unspecified")
+    assert indexing.reindexed == path

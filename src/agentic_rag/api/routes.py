@@ -2,6 +2,7 @@
 
 import hashlib
 import math
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -252,7 +253,7 @@ def update_document_metadata(
     indexing.reindex_file(document.path)
     indexing.vector_store.update_source_metadata(document.path, request.authority, request.freshness)
     updated = StoredDocument(document.name, document.path, document.size_bytes, document.file_type, request.authority, request.freshness)
-    ingestion_repository.record("metadata_updated", name, f"Authority={request.authority}; freshness={request.freshness}")
+    ingestion_repository.record("metadata_updated", name, f"Authority={document.authority}->{request.authority}; freshness={document.freshness}->{request.freshness}")
     return DocumentResponse(**updated.__dict__)
 
 
@@ -274,9 +275,35 @@ def update_documents_metadata(
         document_repository.update_metadata(name, request.authority, request.freshness)
         indexing.reindex_file(document.path)
         indexing.vector_store.update_source_metadata(document.path, request.authority, request.freshness)
-        ingestion_repository.record("metadata_updated", name, f"Authority={request.authority}; freshness={request.freshness}")
+        ingestion_repository.record("metadata_updated", name, f"Authority={document.authority}->{request.authority}; freshness={document.freshness}->{request.freshness}")
         updated_documents.append(DocumentResponse(**StoredDocument(document.name, document.path, document.size_bytes, document.file_type, request.authority, request.freshness).__dict__))
     return BulkDocumentMetadataResponse(updated=updated_documents, errors=errors)
+
+
+@router.post("/documents/{name}/metadata-history/undo", response_model=DocumentResponse)
+def undo_document_metadata(
+    name: str,
+    indexing: DocumentIndexingService = Depends(get_indexing_service),  # noqa: B008
+) -> DocumentResponse:
+    """Undo the latest metadata edit when its previous labels are available."""
+
+    document = next((item for item in document_repository.list_documents() if item.name == name), None)
+    if document is None:
+        raise FileNotFoundError(name)
+    history = ingestion_repository.recent_for_document(name, limit=1)
+    if not history:
+        raise ValueError("No metadata edit is available to undo")
+    detail = history[0]["detail"]
+    authority_match = re.search(r"Authority=([a-z]+)->([a-z]+)", detail)
+    freshness_match = re.search(r"freshness=([a-z]+)->([a-z]+)", detail)
+    if not authority_match or not freshness_match:
+        raise ValueError("The latest metadata edit cannot be undone")
+    authority, freshness = authority_match.group(1), freshness_match.group(1)
+    document_repository.update_metadata(name, authority, freshness)
+    indexing.reindex_file(document.path)
+    indexing.vector_store.update_source_metadata(document.path, authority, freshness)
+    ingestion_repository.record("metadata_undone", name, f"Restored authority={authority}; freshness={freshness}")
+    return DocumentResponse(**StoredDocument(document.name, document.path, document.size_bytes, document.file_type, authority, freshness).__dict__)
 
 
 def _stored_document_path(name: str, storage: DocumentStorageService) -> Path:
