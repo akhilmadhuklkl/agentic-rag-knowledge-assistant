@@ -90,6 +90,12 @@ class SecurityAuditEventResponse(BaseModel):
     created_at: str
 
 
+class AdminSettingsResponse(BaseModel):
+    audit_retention_days: int
+    configured_admin_count: int
+    admin_configuration: str
+
+
 class ReindexStaleResponse(BaseModel):
     """Result of refreshing stale knowledge-base sources."""
 

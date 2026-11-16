@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 
 from agentic_rag.agents.orchestrator import AgentOrchestrator
 from agentic_rag.api.schemas import (
+    AdminSettingsResponse,
     AnswerRequest,
     AnswerResponse,
     AskResponse,
@@ -134,11 +135,28 @@ def provider_health(settings: Settings = Depends(get_settings)) -> ProviderHealt
 def security_audit(request: Request, settings: Settings = Depends(get_settings), limit: int = Query(default=20, ge=1, le=100), offset: int = Query(default=0, ge=0), query: str | None = Query(default=None, max_length=100)) -> list[SecurityAuditEventResponse]:  # noqa: B008
     """Return recent authentication audit events without sensitive headers."""
 
-    user_id = getattr(getattr(request, "state", None), "user_id", "anonymous")
     admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+    _require_admin(request, admins)
+    return [SecurityAuditEventResponse(**event) for event in audit_repository.recent(limit, offset, query)]
+
+
+@router.get("/admin/settings", response_model=AdminSettingsResponse)
+def admin_settings(request: Request, settings: Settings = Depends(get_settings)) -> AdminSettingsResponse:  # noqa: B008
+    """Expose safe administrative configuration to authorized administrators."""
+
+    admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+    _require_admin(request, admins)
+    return AdminSettingsResponse(
+        audit_retention_days=settings.audit_retention_days,
+        configured_admin_count=len(admins),
+        admin_configuration="environment-managed",
+    )
+
+
+def _require_admin(request: Request, admins: set[str]) -> None:
+    user_id = getattr(getattr(request, "state", None), "user_id", "anonymous")
     if admins and user_id not in admins:
         raise PermissionError("Administrator access required")
-    return [SecurityAuditEventResponse(**event) for event in audit_repository.recent(limit, offset, query)]
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008
