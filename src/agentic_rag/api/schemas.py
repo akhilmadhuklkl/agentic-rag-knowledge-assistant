@@ -259,6 +259,7 @@ class CitationResponse(BaseModel):
     authority: str = "standard"
     freshness: str = "unspecified"
     file_type: str = "document"
+    source_url: str | None = None
 
 
 class AnswerResponse(BaseModel):
