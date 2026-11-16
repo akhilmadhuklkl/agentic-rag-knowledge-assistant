@@ -162,6 +162,16 @@ def create_app() -> FastAPI:
 
         return operational_repository.recent(max(1, min(limit, 100)))
 
+    @app.get("/health/diagnostics", tags=["system"])
+    def diagnostics() -> dict[str, object]:
+        """Return a safe, export-friendly local diagnostics snapshot."""
+
+        return {
+            "readiness": readiness(),
+            "history": operational_repository.recent(20),
+            "metrics": metrics.snapshot(),
+        }
+
     @app.get("/metrics", tags=["system"])
     def application_metrics() -> dict[str, object]:
         """Return local process metrics for development observability."""

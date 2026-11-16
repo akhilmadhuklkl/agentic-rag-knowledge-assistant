@@ -56,6 +56,8 @@ def test_health_and_activity_hooks_are_present() -> None:
     assert "/health" in JAVASCRIPT
     assert "/health/readiness" in JAVASCRIPT
     assert "/health/history" in JAVASCRIPT
+    assert "/health/diagnostics" in JAVASCRIPT
+    assert 'id="export-diagnostics"' in HTML
     assert "errors-only" in JAVASCRIPT
 
 
