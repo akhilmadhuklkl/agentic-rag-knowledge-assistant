@@ -80,8 +80,9 @@ def test_bulk_metadata_route_updates_and_reindexes_all_documents(monkeypatch, tm
         indexing=indexing,
     )
 
-    assert [document.authority for document in response] == ["legacy", "legacy"]
-    assert [document.freshness for document in response] == ["historical", "historical"]
+    assert [document.authority for document in response.updated] == ["legacy", "legacy"]
+    assert [document.freshness for document in response.updated] == ["historical", "historical"]
+    assert response.errors == []
     assert repository.updated == ("two.md", "legacy", "historical")
     assert indexing.reindexed == str(tmp_path / "two.md")
     assert indexing.vector_store.updated == (str(tmp_path / "two.md"), "legacy", "historical")
@@ -91,12 +92,10 @@ def test_bulk_metadata_route_rejects_unknown_document(monkeypatch, tmp_path: Pat
     repository = FakeRepository(StoredDocument("one.md", str(tmp_path / "one.md"), 10, "md"))
     monkeypatch.setattr(routes, "document_repository", repository)
 
-    try:
-        routes.update_documents_metadata(
-            BulkDocumentMetadataUpdate(names=["missing.md"], authority="standard", freshness="unspecified"),
-            indexing=FakeIndexing(),
-        )
-    except FileNotFoundError as error:
-        assert str(error) == "missing.md"
-    else:
-        raise AssertionError("Expected unknown bulk document to be rejected")
+    response = routes.update_documents_metadata(
+        BulkDocumentMetadataUpdate(names=["missing.md"], authority="standard", freshness="unspecified"),
+        indexing=FakeIndexing(),
+    )
+
+    assert response.updated == []
+    assert response.errors == ["missing.md: document not found"]

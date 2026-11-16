@@ -39,6 +39,13 @@ class BulkDocumentMetadataUpdate(BaseModel):
     freshness: Literal["current", "historical", "unspecified"]
 
 
+class BulkDocumentMetadataResponse(BaseModel):
+    """Per-document result summary for a batch metadata update."""
+
+    updated: list[DocumentResponse] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
 class DocumentListResponse(BaseModel):
     """Available stored documents."""
 
