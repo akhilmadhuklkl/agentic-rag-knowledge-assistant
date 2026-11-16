@@ -1,6 +1,7 @@
-from agentic_rag.api.app import PUBLIC_HEALTH_PATHS, create_app
+from agentic_rag.api.app import create_app
 from agentic_rag.api.routes import provider_health
 from agentic_rag.config import Settings
+from agentic_rag.security.request_context import PUBLIC_HEALTH_PATHS
 
 
 def test_health_endpoint_reports_ready_application() -> None:

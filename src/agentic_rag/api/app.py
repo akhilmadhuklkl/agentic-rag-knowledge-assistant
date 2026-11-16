@@ -23,9 +23,11 @@ from agentic_rag.observability import (
     set_request_id,
 )
 from agentic_rag.security.auth import authenticate_request
+from agentic_rag.security.request_context import (
+    classify_authentication_failure,
+    is_public_health_path,
+)
 from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteOperationalRepository
-
-PUBLIC_HEALTH_PATHS = frozenset({"/health", "/health/readiness"})
 
 
 def create_app() -> FastAPI:
@@ -64,10 +66,11 @@ def create_app() -> FastAPI:
     async def request_context(request: Request, call_next):
         request_id = request.headers.get(REQUEST_ID_HEADER) or create_request_id()
         set_request_id(request_id)
-        if request.url.path not in PUBLIC_HEALTH_PATHS:
+        if not is_public_health_path(request.url.path):
             try:
                 identity = authenticate_request(dict(request.headers), settings)
             except PermissionError as error:
+                failure = classify_authentication_failure(error)
                 metrics.increment("http_requests_total")
                 metrics.increment("http_errors_total")
                 metrics.increment("authentication_failures_total")
@@ -82,11 +85,10 @@ def create_app() -> FastAPI:
                     request.method,
                     request.url.path,
                     str(error),
-                    "high" if "API key" in str(error) else "medium",
+                    failure.severity,
                 )
                 audit_repository.purge_older_than(settings.audit_retention_days)
-                status_code = 401 if "API key" in str(error) else 403
-                return JSONResponse(status_code=status_code, content={"detail": str(error)})
+                return JSONResponse(status_code=failure.status_code, content={"detail": failure.reason})
             log_event(
                 "request_authenticated",
                 user_id=identity.user_id,
