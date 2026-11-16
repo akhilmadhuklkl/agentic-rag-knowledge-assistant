@@ -6,7 +6,11 @@ import pytest
 from agentic_rag.api.routes import security_audit
 from agentic_rag.config import Settings
 from agentic_rag.storage.documents import DocumentStorageService
-from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteDocumentRepository
+from agentic_rag.storage.repository import (
+    SQLiteAuditRepository,
+    SQLiteDocumentRepository,
+    SQLiteOperationalRepository,
+)
 
 
 def test_sqlite_document_repository_stores_metadata_and_fingerprint(tmp_path: Path) -> None:
@@ -35,6 +39,16 @@ def test_sqlite_audit_repository_persists_recent_security_events(tmp_path: Path)
     assert events[0]["severity"] == "medium"
     assert repository.recent(query="API key")[0]["path"] == "/metrics"
     assert repository.recent(limit=1, offset=1)[0]["request_id"] == "request-1"
+
+
+def test_sqlite_operational_repository_persists_readiness_snapshots(tmp_path: Path) -> None:
+    repository = SQLiteOperationalRepository(tmp_path / "assistant.db")
+
+    repository.record("ready", 12.5, 0.02)
+
+    snapshot = repository.recent(limit=1)[0]
+    assert snapshot["status"] == "ready"
+    assert snapshot["error_rate"] == 0.02
 
 
 def test_security_audit_route_requires_an_admin_user() -> None:

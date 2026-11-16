@@ -23,7 +23,7 @@ from agentic_rag.observability import (
     set_request_id,
 )
 from agentic_rag.security.auth import authenticate_request
-from agentic_rag.storage.repository import SQLiteAuditRepository
+from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteOperationalRepository
 
 
 def create_app() -> FastAPI:
@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
             "No admin_user_ids configured; administrative audit views are unavailable"
         )
     audit_repository = SQLiteAuditRepository(settings.database_path)
+    operational_repository = SQLiteOperationalRepository(settings.database_path)
     started_at = time.monotonic()
     configure_logging(settings.log_level)
     app = FastAPI(title=settings.app_name, version=__version__)
@@ -135,6 +136,10 @@ def create_app() -> FastAPI:
         alert = error_rate >= settings.error_rate_alert_threshold and request_count > 0
         if alert:
             status = "degraded"
+        try:
+            operational_repository.record(status, time.monotonic() - started_at, error_rate)
+        except sqlite3.Error:
+            logging.getLogger("agentic_rag").warning("Operational snapshot could not be persisted")
         return {
             "status": status,
             "environment": settings.app_env,
@@ -149,6 +154,12 @@ def create_app() -> FastAPI:
             "request_count": request_count,
             "alert": "Elevated error rate" if alert else None,
         }
+
+    @app.get("/health/history", tags=["system"])
+    def health_history(limit: int = 20) -> list[dict[str, object]]:
+        """Return recent persisted readiness snapshots."""
+
+        return operational_repository.recent(max(1, min(limit, 100)))
 
     @app.get("/metrics", tags=["system"])
     def application_metrics() -> dict[str, object]:

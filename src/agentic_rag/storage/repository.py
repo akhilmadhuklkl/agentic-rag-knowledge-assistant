@@ -158,6 +158,41 @@ class SQLiteAuditRepository:
         return sqlite3.connect(self.path)
 
 
+class SQLiteOperationalRepository:
+    """Persist compact readiness snapshots for local operational history."""
+
+    def __init__(self, path: str | Path = "data/assistant.db") -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS operational_snapshots "
+                "(id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, "
+                "uptime_seconds REAL NOT NULL, error_rate REAL NOT NULL, "
+                "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+            )
+
+    def record(self, status: str, uptime_seconds: float, error_rate: float) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO operational_snapshots (status, uptime_seconds, error_rate) VALUES (?, ?, ?)",
+                (status, uptime_seconds, error_rate),
+            )
+
+    def recent(self, limit: int = 20) -> list[dict[str, object]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT status, uptime_seconds, error_rate, created_at "
+                "FROM operational_snapshots ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        keys = ("status", "uptime_seconds", "error_rate", "created_at")
+        return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def _connect(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.path)
+
+
 class SQLiteEvaluationRepository:
     """Persist compact benchmark results for trend comparisons."""
 
