@@ -154,13 +154,13 @@ def admin_settings(request: Request, settings: Settings = Depends(get_settings))
 
 
 @router.get("/security/quarantine", response_model=list[IngestionActivityResponse])
-def quarantine_events(request: Request, settings: Settings = Depends(get_settings), limit: int = Query(default=20, ge=1, le=100)) -> list[IngestionActivityResponse]:  # noqa: B008
-    """Return recent quarantined-upload events to administrators."""
+def quarantine_events(request: Request, settings: Settings = Depends(get_settings), limit: int = Query(default=20, ge=1, le=100), offset: int = Query(default=0, ge=0)) -> list[IngestionActivityResponse]:  # noqa: B008
+    """Return paginated quarantine and cleanup events to administrators."""
 
     admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
     _require_admin(request, admins)
-    events = [event for event in ingestion_repository.recent(limit=100) if event["action"] == "quarantined"]
-    return [IngestionActivityResponse(**event) for event in events[:limit]]
+    events = [event for event in ingestion_repository.recent(limit=1000) if event["action"] in {"quarantined", "quarantine_deleted"}]
+    return [IngestionActivityResponse(**event) for event in events[offset:offset + limit]]
 
 
 def _require_admin(request: Request, admins: set[str]) -> None:

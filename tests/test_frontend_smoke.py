@@ -63,6 +63,9 @@ def test_health_and_activity_hooks_are_present() -> None:
     assert "/knowledge/security/quarantine/files" in JAVASCRIPT
     assert "deleteQuarantinedFile" in JAVASCRIPT
     assert "quarantine-delete" in JAVASCRIPT
+    assert 'id="quarantine-load-more"' in HTML
+    assert "quarantine-load-more" in JAVASCRIPT
+    assert "quarantine_deleted" in JAVASCRIPT
     assert "errors-only" in JAVASCRIPT
 
 
