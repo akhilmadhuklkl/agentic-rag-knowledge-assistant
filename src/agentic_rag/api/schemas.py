@@ -81,6 +81,14 @@ class ProviderHealthResponse(BaseModel):
     index_status: Literal["compatible", "needs_reindex", "not_created"] = "not_created"
 
 
+class SecurityAuditEventResponse(BaseModel):
+    request_id: str
+    method: str
+    path: str
+    reason: str
+    created_at: str
+
+
 class ReindexStaleResponse(BaseModel):
     """Result of refreshing stale knowledge-base sources."""
 

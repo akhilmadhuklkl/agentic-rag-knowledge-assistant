@@ -43,6 +43,7 @@ from agentic_rag.api.schemas import (
     SearchRequest,
     SearchResponse,
     SearchResultResponse,
+    SecurityAuditEventResponse,
 )
 from agentic_rag.config import Settings, get_settings
 from agentic_rag.conversations.repository import SQLiteConversationRepository
@@ -57,6 +58,7 @@ from agentic_rag.metrics import metrics
 from agentic_rag.observability import log_event
 from agentic_rag.storage.documents import DocumentStorageService, StoredDocument
 from agentic_rag.storage.repository import (
+    SQLiteAuditRepository,
     SQLiteDocumentRepository,
     SQLiteEvaluationRepository,
     SQLiteFeedbackRepository,
@@ -75,6 +77,7 @@ feedback_repository = SQLiteFeedbackRepository(get_settings().database_path)
 evaluation_repository = SQLiteEvaluationRepository(get_settings().database_path)
 ingestion_repository = SQLiteIngestionRepository(get_settings().database_path)
 latency_repository = SQLiteLatencyRepository(get_settings().database_path)
+audit_repository = SQLiteAuditRepository(get_settings().database_path)
 
 
 def _search_mode_weight(mode: str, hybrid_weight: float) -> float:
@@ -125,6 +128,13 @@ def provider_health(settings: Settings = Depends(get_settings)) -> ProviderHealt
     else:
         detail = "Ollama is not reachable; check that the local service is running."
     return ProviderHealthResponse(status=status, llm_provider=settings.llm_provider, llm_model=settings.llm_model, embedding_provider=settings.embedding_provider, embedding_model=settings.embedding_model, ollama_reachable=reachable, detail=detail, embedding_provider_id=embedding_provider_id, indexed_provider_id=indexed_provider_id, index_status=index_status)
+
+
+@router.get("/security/audit", response_model=list[SecurityAuditEventResponse])
+def security_audit(limit: int = Query(default=20, ge=1, le=100)) -> list[SecurityAuditEventResponse]:
+    """Return recent authentication audit events without sensitive headers."""
+
+    return [SecurityAuditEventResponse(**event) for event in audit_repository.recent(limit)]
 
 
 def get_indexing_service(settings: Settings = Depends(get_settings)) -> DocumentIndexingService:  # noqa: B008

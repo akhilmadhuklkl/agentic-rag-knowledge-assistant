@@ -13,16 +13,19 @@ from agentic_rag.observability import (
     REQUEST_ID_HEADER,
     configure_logging,
     create_request_id,
+    get_request_id,
     log_event,
     set_request_id,
 )
 from agentic_rag.security.auth import authenticate_request
+from agentic_rag.storage.repository import SQLiteAuditRepository
 
 
 def create_app() -> FastAPI:
     """Create the API application without relying on global UI state."""
 
     settings = get_settings()
+    audit_repository = SQLiteAuditRepository(settings.database_path)
     configure_logging(settings.log_level)
     app = FastAPI(title=settings.app_name, version=__version__)
     app.include_router(knowledge_router)
@@ -57,6 +60,9 @@ def create_app() -> FastAPI:
                     method=request.method,
                     path=request.url.path,
                     reason=str(error),
+                )
+                audit_repository.record(
+                    get_request_id(), request.method, request.url.path, str(error)
                 )
                 status_code = 401 if "API key" in str(error) else 403
                 return JSONResponse(status_code=status_code, content={"detail": str(error)})

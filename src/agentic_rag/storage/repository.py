@@ -103,6 +103,41 @@ class SQLiteFeedbackRepository:
         return sqlite3.connect(self.path)
 
 
+class SQLiteAuditRepository:
+    """Persist security-relevant request audit events without secrets."""
+
+    def __init__(self, path: str | Path = "data/assistant.db") -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS security_audit_events "
+                "(id INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT NOT NULL, "
+                "method TEXT NOT NULL, path TEXT NOT NULL, reason TEXT NOT NULL, "
+                "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+            )
+
+    def record(self, request_id: str | None, method: str, path: str, reason: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO security_audit_events (request_id, method, path, reason) VALUES (?, ?, ?, ?)",
+                (request_id or "unknown", method, path, reason),
+            )
+
+    def recent(self, limit: int = 20) -> list[dict[str, str]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT request_id, method, path, reason, created_at "
+                "FROM security_audit_events ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        keys = ("request_id", "method", "path", "reason", "created_at")
+        return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def _connect(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.path)
+
+
 class SQLiteEvaluationRepository:
     """Persist compact benchmark results for trend comparisons."""
 
