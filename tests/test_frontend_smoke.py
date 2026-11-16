@@ -25,6 +25,7 @@ def test_document_management_hooks_are_present() -> None:
     assert "metadata-history-dialog" in JAVASCRIPT
     assert "Updating…" in JAVASCRIPT
     assert "bulk-metadata-undo" in JAVASCRIPT
+    assert "atlas-metadata-filters" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
