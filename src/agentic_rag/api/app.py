@@ -1,6 +1,8 @@
 """FastAPI application entry point."""
 
 import logging
+import sqlite3
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
@@ -92,6 +94,32 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
         return {"status": "ok", "environment": settings.app_env}
+
+    @app.get("/health/readiness", tags=["system"])
+    def readiness() -> dict[str, object]:
+        """Report operational dependencies needed for local readiness."""
+
+        components: dict[str, str] = {}
+        try:
+            with sqlite3.connect(settings.database_path) as connection:
+                connection.execute("SELECT 1")
+            components["database"] = "ready"
+            components["audit_storage"] = "ready"
+        except sqlite3.Error:
+            components["database"] = "degraded"
+            components["audit_storage"] = "degraded"
+        vector_path = Path(settings.vector_store_path)
+        components["vector_index"] = "ready" if vector_path.is_file() and vector_path.with_suffix(".meta.json").is_file() else "not_created"
+        if settings.llm_provider.lower() == "ollama" or settings.embedding_provider.lower() == "ollama":
+            try:
+                response = httpx.get(f"{settings.llm_base_url.rstrip('/')}/api/tags", timeout=2.0)
+                components["ollama"] = "ready" if response.is_success else "degraded"
+            except httpx.HTTPError:
+                components["ollama"] = "degraded"
+        else:
+            components["ollama"] = "not_required"
+        status = "ready" if all(value in {"ready", "not_required"} for value in components.values()) else "degraded"
+        return {"status": status, "environment": settings.app_env, "components": components}
 
     @app.get("/metrics", tags=["system"])
     def application_metrics() -> dict[str, object]:

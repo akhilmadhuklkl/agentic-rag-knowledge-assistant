@@ -16,3 +16,9 @@ def test_provider_health_reports_local_index_compatibility(tmp_path) -> None:
     assert health.status == "ready"
     assert health.index_status == "not_created"
     assert health.embedding_provider_id.startswith("local-hash-v1:")
+
+
+def test_readiness_endpoint_is_registered() -> None:
+    app = create_app()
+
+    assert any(route.path == "/health/readiness" for route in app.routes)
