@@ -59,7 +59,7 @@ def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object], oper
         metrics.increment("recycle_bin_cleanup_runs_total")
         metrics.increment("recycle_bin_items_removed_total", len(removed))
         if operational_repository:
-            operational_repository.record_cleanup("success", len(removed))
+            operational_repository.record_cleanup("success", len(removed), removed_names=removed)
         if removed:
             logging.getLogger("agentic_rag").info("recycle_bin_cleanup_completed", extra={"removed": len(removed)})
         return removed
@@ -67,7 +67,7 @@ def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object], oper
         status["last_error"] = str(error)
         metrics.increment("recycle_bin_cleanup_failures_total")
         if operational_repository:
-            operational_repository.record_cleanup("error", 0, str(error))
+            operational_repository.record_cleanup("error", 0, str(error), [])
         logging.getLogger("agentic_rag").exception("recycle_bin_cleanup_failed")
         return []
 

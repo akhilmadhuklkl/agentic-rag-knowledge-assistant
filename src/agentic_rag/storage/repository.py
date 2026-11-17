@@ -1,5 +1,6 @@
 """SQLite repositories for document metadata and index freshness."""
 
+import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -173,8 +174,11 @@ class SQLiteOperationalRepository:
             )
             connection.execute(
                 "CREATE TABLE IF NOT EXISTS recycle_bin_cleanup_runs "
-                "(id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, removed_count INTEGER NOT NULL, error TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+                "(id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, removed_count INTEGER NOT NULL, removed_names TEXT NOT NULL DEFAULT '[]', error TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
             )
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(recycle_bin_cleanup_runs)").fetchall()}
+            if "removed_names" not in columns:
+                connection.execute("ALTER TABLE recycle_bin_cleanup_runs ADD COLUMN removed_names TEXT NOT NULL DEFAULT '[]'")
 
     def record(self, status: str, uptime_seconds: float, error_rate: float) -> None:
         with self._connect() as connection:
@@ -193,15 +197,15 @@ class SQLiteOperationalRepository:
         keys = ("status", "uptime_seconds", "error_rate", "created_at")
         return [dict(zip(keys, row, strict=True)) for row in rows]
 
-    def record_cleanup(self, status: str, removed_count: int, error: str | None = None) -> None:
+    def record_cleanup(self, status: str, removed_count: int, error: str | None = None, removed_names: list[str] | None = None) -> None:
         with self._connect() as connection:
-            connection.execute("INSERT INTO recycle_bin_cleanup_runs (status, removed_count, error) VALUES (?, ?, ?)", (status, removed_count, error))
+            connection.execute("INSERT INTO recycle_bin_cleanup_runs (status, removed_count, removed_names, error) VALUES (?, ?, ?, ?)", (status, removed_count, json.dumps(removed_names or []), error))
 
     def recent_cleanup(self, limit: int = 20) -> list[dict[str, object]]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT status, removed_count, error, created_at FROM recycle_bin_cleanup_runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
-        keys = ("status", "removed_count", "error", "created_at")
-        return [dict(zip(keys, row, strict=True)) for row in rows]
+            rows = connection.execute("SELECT status, removed_count, removed_names, error, created_at FROM recycle_bin_cleanup_runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        keys = ("status", "removed_count", "removed_names", "error", "created_at")
+        return [{**dict(zip(keys, row, strict=True)), "removed_names": json.loads(row[2])} for row in rows]
 
     def purge_older_than(self, days: int) -> int:
         cutoff = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
