@@ -71,6 +71,16 @@ class DocumentListResponse(BaseModel):
     documents: list[DocumentResponse]
 
 
+class RecycleBinItemResponse(BaseModel):
+    name: str
+    deleted_at: str
+    age_days: int
+
+
+class RecycleBinCleanupResponse(BaseModel):
+    removed: list[str] = Field(default_factory=list)
+
+
 class KnowledgeBaseHealthResponse(BaseModel):
     """Summary of document and index readiness."""
 

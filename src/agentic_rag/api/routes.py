@@ -42,6 +42,8 @@ from agentic_rag.api.schemas import (
     LatencySummaryResponse,
     ProviderComparisonResponse,
     ProviderHealthResponse,
+    RecycleBinCleanupResponse,
+    RecycleBinItemResponse,
     ReindexStaleResponse,
     SearchRequest,
     SearchResponse,
@@ -316,11 +318,35 @@ async def upload_document(
     return DocumentResponse(**document.__dict__)
 
 
-@router.get("/documents/recycle-bin", response_model=list[str])
-def list_recycled_documents(storage: DocumentStorageService = Depends(get_document_storage)) -> list[str]:  # noqa: B008
+@router.get("/documents/recycle-bin", response_model=list[RecycleBinItemResponse])
+def list_recycled_documents(storage: DocumentStorageService = Depends(get_document_storage)) -> list[RecycleBinItemResponse]:  # noqa: B008
     """List documents that can be restored from the recycle bin."""
 
-    return storage.list_recycle_bin()
+    return [RecycleBinItemResponse(**item) for item in storage.recycle_bin_details()]
+
+
+@router.delete("/documents/recycle-bin/{name}")
+def permanently_delete_recycled_document(name: str, request: Request, settings: Settings = Depends(get_settings), storage: DocumentStorageService = Depends(get_document_storage)) -> dict[str, str]:  # noqa: B008
+    """Permanently delete one recycled document after administrator authorization."""
+
+    admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+    _require_admin(request, admins)
+    if not storage.permanently_delete_recycled(name):
+        raise FileNotFoundError(name)
+    ingestion_repository.record("purged", name, "Administrator permanently removed recycled document")
+    return {"status": "purged", "name": Path(name).name}
+
+
+@router.post("/documents/recycle-bin/purge", response_model=RecycleBinCleanupResponse)
+def purge_recycled_documents(request: Request, max_age_days: int = Query(default=30, ge=1, le=3650), settings: Settings = Depends(get_settings), storage: DocumentStorageService = Depends(get_document_storage)) -> RecycleBinCleanupResponse:  # noqa: B008
+    """Permanently remove recycled documents older than the administrator-selected age."""
+
+    admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+    _require_admin(request, admins)
+    removed = storage.purge_recycle_bin(max_age_days)
+    for name in removed:
+        ingestion_repository.record("purged", name, f"Administrator purged recycle-bin item older than {max_age_days} days")
+    return RecycleBinCleanupResponse(removed=removed)
 
 
 @router.post("/documents/{name}/restore", response_model=DocumentResponse)

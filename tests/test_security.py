@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from agentic_rag.security.prompt import evidence_block, validate_question
@@ -75,3 +77,16 @@ def test_deleted_document_can_be_restored_from_recycle_bin(tmp_path) -> None:
     assert restored.name == "policy.txt"
     assert service.list_recycle_bin() == []
     assert service.list_documents()[0].name == "policy.txt"
+
+
+def test_recycle_bin_can_permanently_purge_old_documents(tmp_path) -> None:
+    service = DocumentStorageService(tmp_path / "documents", recycle_root=tmp_path / "recycle")
+    saved = service.save("old.txt", b"old content")
+    service.delete(saved.name)
+    recycled = tmp_path / "recycle" / "old.txt"
+    recycled.touch()
+    old_time = recycled.stat().st_mtime - 172800
+    os.utime(recycled, (old_time, old_time))
+
+    assert service.purge_recycle_bin(1) == ["old.txt"]
+    assert service.list_recycle_bin() == []

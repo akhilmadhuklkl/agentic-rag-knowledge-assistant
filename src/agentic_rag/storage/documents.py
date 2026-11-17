@@ -3,6 +3,7 @@
 import hashlib
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -137,6 +138,36 @@ class DocumentStorageService:
         if not self.recycle_root.is_dir():
             return []
         return sorted(path.name for path in self.recycle_root.iterdir() if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS)
+
+    def recycle_bin_details(self) -> list[dict[str, object]]:
+        """Return recycle-bin names and retention metadata."""
+
+        details = []
+        for name in self.list_recycle_bin():
+            path = self.recycle_root / name
+            deleted_at = datetime.fromtimestamp(path.stat().st_mtime, UTC)
+            details.append({"name": name, "deleted_at": deleted_at.isoformat(), "age_days": max(0, (datetime.now(UTC) - deleted_at).days)})
+        return details
+
+    def permanently_delete_recycled(self, name: str) -> bool:
+        """Permanently remove one recycled document after explicit approval."""
+
+        candidate = (self.recycle_root / self._safe_filename(name)).resolve()
+        if candidate.parent != self.recycle_root.resolve() or not candidate.is_file():
+            return False
+        candidate.unlink()
+        return True
+
+    def purge_recycle_bin(self, max_age_days: int) -> list[str]:
+        """Permanently remove recycled documents at or beyond the age limit."""
+
+        if max_age_days < 1:
+            raise ValueError("max_age_days must be positive")
+        removed = []
+        for item in self.recycle_bin_details():
+            if int(item["age_days"]) >= max_age_days and self.permanently_delete_recycled(str(item["name"])):
+                removed.append(str(item["name"]))
+        return removed
 
     def restore(self, name: str) -> StoredDocument:
         """Restore one recycled document back into active storage."""
