@@ -13,6 +13,7 @@ The project is a product foundation. Core capabilities live in Python services a
 ## Current capabilities
 
 - PDF, Markdown, and text ingestion
+- Recoverable document deletion with recycle-bin retention and cleanup monitoring
 - Chunking with source metadata
 - Deterministic local embeddings and persistent vector storage
 - Hybrid semantic plus keyword retrieval

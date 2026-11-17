@@ -105,3 +105,11 @@ def test_backup_application_is_preserved() -> None:
     backup = Path(__file__).parents[1] / "streamlit_backup"
     assert backup.is_dir()
     assert any(backup.iterdir())
+
+
+def test_recycle_bin_operations_documentation_is_present() -> None:
+    documentation = Path(__file__).parents[1] / "docs" / "recycle-bin-operations.md"
+    content = documentation.read_text(encoding="utf-8")
+    assert "RECYCLE_BIN_RETENTION_DAYS" in content
+    assert "/health/recycle-bin/summary" in content
+    assert "Restore & re-index" in content
