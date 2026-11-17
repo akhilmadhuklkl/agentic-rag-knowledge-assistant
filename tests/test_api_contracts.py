@@ -13,6 +13,7 @@ def test_api_registers_product_routes_and_error_handlers() -> None:
     assert "/knowledge/ask" in paths
     assert "/knowledge/documents/upload" in paths
     assert "/health/recycle-bin" in paths
+    assert "/health/recycle-bin/run" in paths
     assert ValueError in app.exception_handlers
     assert FileNotFoundError in app.exception_handlers
 

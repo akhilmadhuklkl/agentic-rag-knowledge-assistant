@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from agentic_rag import __version__
-from agentic_rag.api.routes import ingestion_repository
+from agentic_rag.api.routes import _require_admin, ingestion_repository
 from agentic_rag.api.routes import router as knowledge_router
 from agentic_rag.config import Settings, get_settings
 from agentic_rag.metrics import metrics
@@ -115,6 +115,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "last_removed_count": cleanup_status["last_removed_count"],
             "last_error": cleanup_status["last_error"],
             "history": operational_repository.recent_cleanup(10),
+        }
+
+    @app.post("/health/recycle-bin/run", tags=["system"])
+    def run_recycle_bin_cleanup(request: Request) -> dict[str, object]:
+        """Run recycle-bin cleanup immediately for an authorized administrator."""
+
+        admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+        _require_admin(request, admins)
+        removed = recycle_bin_cleanup_once(settings, cleanup_status, operational_repository)
+        return {
+            "status": "error" if cleanup_status["last_error"] else "completed",
+            "removed": removed,
+            "removed_count": len(removed),
+            "error": cleanup_status["last_error"],
         }
 
     @app.get("/", include_in_schema=False)

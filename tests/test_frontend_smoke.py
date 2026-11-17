@@ -53,6 +53,8 @@ def test_document_management_hooks_are_present() -> None:
     assert "/health/recycle-bin" in JAVASCRIPT
     assert "last_removed_count" in JAVASCRIPT
     assert "recycle-history" in JAVASCRIPT
+    assert "/health/recycle-bin/run" in JAVASCRIPT
+    assert "Run cleanup now" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
