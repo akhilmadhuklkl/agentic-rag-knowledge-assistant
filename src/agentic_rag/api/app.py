@@ -1,8 +1,10 @@
 """FastAPI application entry point."""
 
+import asyncio
 import logging
 import sqlite3
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -11,6 +13,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from agentic_rag import __version__
+from agentic_rag.api.routes import ingestion_repository
 from agentic_rag.api.routes import router as knowledge_router
 from agentic_rag.config import Settings, get_settings
 from agentic_rag.metrics import metrics
@@ -29,7 +32,21 @@ from agentic_rag.security.request_context import (
     classify_authentication_failure,
     is_public_health_path,
 )
+from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteOperationalRepository
+
+
+async def recycle_bin_cleanup_loop(settings: Settings) -> None:
+    """Periodically purge expired recycle-bin files until application shutdown."""
+
+    while True:
+        await asyncio.sleep(settings.recycle_bin_cleanup_interval_seconds)
+        storage = DocumentStorageService(settings.document_storage_path)
+        removed = storage.purge_recycle_bin(settings.recycle_bin_retention_days)
+        for name in removed:
+            ingestion_repository.record("purged", name, f"Automatic cleanup after {settings.recycle_bin_retention_days} days")
+        if removed:
+            logging.getLogger("agentic_rag").info("recycle_bin_cleanup_completed", extra={"removed": len(removed)})
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -45,7 +62,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     rate_limiter = InMemoryRateLimiter()
     started_at = time.monotonic()
     configure_logging(settings.log_level)
-    app = FastAPI(title=settings.app_name, version=__version__)
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        cleanup_task = asyncio.create_task(recycle_bin_cleanup_loop(settings))
+        try:
+            yield
+        finally:
+            cleanup_task.cancel()
+            try:
+                await cleanup_task
+            except asyncio.CancelledError:
+                pass
+
+    app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
     app.include_router(knowledge_router)
     app.mount("/app", StaticFiles(directory="frontend", html=True), name="primary-ui")
 

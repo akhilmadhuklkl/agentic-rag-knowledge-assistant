@@ -21,6 +21,11 @@ def test_settings_validate_recycle_bin_retention() -> None:
         Settings(_env_file=None, recycle_bin_retention_days=0)
 
 
+def test_settings_validate_recycle_bin_cleanup_interval() -> None:
+    with pytest.raises(ValueError, match="recycle_bin_cleanup_interval_seconds"):
+        Settings(_env_file=None, recycle_bin_cleanup_interval_seconds=30)
+
+
 def test_settings_validate_admin_user_ids() -> None:
     settings = Settings(_env_file=None, admin_user_ids="admin_1,admin-2")
     assert settings.admin_user_ids == "admin_1,admin-2"
