@@ -70,6 +70,8 @@ def test_document_management_hooks_are_present() -> None:
     assert "cleanup-failure-trend" in JAVASCRIPT
     assert "average_duration_ms" in JAVASCRIPT
     assert "recycle-performance" in JAVASCRIPT
+    assert "recycle-alert" in JAVASCRIPT
+    assert "alert_threshold_ms" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:

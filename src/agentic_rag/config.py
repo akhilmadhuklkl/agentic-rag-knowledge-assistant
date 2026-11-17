@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     audit_retention_days: int = 30
     recycle_bin_retention_days: int = 30
     recycle_bin_cleanup_interval_seconds: int = 86_400
+    recycle_bin_cleanup_alert_threshold_ms: int = 5_000
     admin_user_ids: str = ""
     error_rate_alert_threshold: float = 0.1
     rate_limit_per_minute: int = 120
@@ -68,6 +69,13 @@ class Settings(BaseSettings):
     def validate_recycle_bin_cleanup_interval_seconds(cls, value: int) -> int:
         if not 60 <= value <= 604_800:
             raise ValueError("recycle_bin_cleanup_interval_seconds must be between 60 and 604800")
+        return value
+
+    @field_validator("recycle_bin_cleanup_alert_threshold_ms")
+    @classmethod
+    def validate_recycle_bin_cleanup_alert_threshold_ms(cls, value: int) -> int:
+        if not 100 <= value <= 3_600_000:
+            raise ValueError("recycle_bin_cleanup_alert_threshold_ms must be between 100 and 3600000")
         return value
 
     @field_validator("admin_user_ids")

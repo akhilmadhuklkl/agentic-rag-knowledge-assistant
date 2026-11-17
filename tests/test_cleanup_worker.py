@@ -33,6 +33,7 @@ def test_cleanup_worker_records_successful_purge(monkeypatch) -> None:
     assert status["last_removed_count"] == 2
     assert status["last_run_at"] is not None
     assert status["last_error"] is None
+    assert status["last_alert"] is None
     assert len(ingestion.events) == 2
 
 

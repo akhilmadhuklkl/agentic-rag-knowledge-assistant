@@ -61,9 +61,12 @@ def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object], oper
         status["last_run_at"] = time.time()
         status["last_removed_count"] = len(removed)
         status["last_error"] = None
+        duration_ms = (time.perf_counter() - started) * 1000
+        status["last_alert"] = f"Cleanup took {duration_ms:.0f} ms" if duration_ms > settings.recycle_bin_cleanup_alert_threshold_ms else None
         metrics.increment("recycle_bin_cleanup_runs_total")
         metrics.increment("recycle_bin_items_removed_total", len(removed))
-        duration_ms = (time.perf_counter() - started) * 1000
+        if status["last_alert"]:
+            metrics.increment("recycle_bin_cleanup_slow_runs_total")
         if operational_repository:
             operational_repository.record_cleanup("success", len(removed), removed_names=removed, duration_ms=duration_ms)
         if removed:
@@ -71,6 +74,7 @@ def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object], oper
         return removed
     except Exception as error:  # pragma: no cover - defensive worker boundary
         status["last_error"] = str(error)
+        status["last_alert"] = None
         metrics.increment("recycle_bin_cleanup_failures_total")
         duration_ms = (time.perf_counter() - started) * 1000
         if operational_repository:
@@ -91,7 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     operational_repository = SQLiteOperationalRepository(settings.database_path)
     rate_limiter = InMemoryRateLimiter()
     started_at = time.monotonic()
-    cleanup_status: dict[str, object] = {"last_started_at": None, "last_run_at": None, "last_removed_count": 0, "last_error": None}
+    cleanup_status: dict[str, object] = {"last_started_at": None, "last_run_at": None, "last_removed_count": 0, "last_error": None, "last_alert": None}
     configure_logging(settings.log_level)
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -121,6 +125,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "last_run_at": cleanup_status["last_run_at"],
             "last_removed_count": cleanup_status["last_removed_count"],
             "last_error": cleanup_status["last_error"],
+            "alert_threshold_ms": settings.recycle_bin_cleanup_alert_threshold_ms,
+            "last_alert": cleanup_status["last_alert"],
             "history": operational_repository.recent_cleanup(10),
         }
 
