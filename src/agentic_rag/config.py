@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     web_search_timeout_seconds: float = 4.0
     web_search_allowed_domains: str = ""
     audit_retention_days: int = 30
+    recycle_bin_retention_days: int = 30
     admin_user_ids: str = ""
     error_rate_alert_threshold: float = 0.1
     rate_limit_per_minute: int = 120
@@ -52,6 +53,13 @@ class Settings(BaseSettings):
     def validate_audit_retention_days(cls, value: int) -> int:
         if not 1 <= value <= 3650:
             raise ValueError("audit_retention_days must be between 1 and 3650")
+        return value
+
+    @field_validator("recycle_bin_retention_days")
+    @classmethod
+    def validate_recycle_bin_retention_days(cls, value: int) -> int:
+        if not 1 <= value <= 3650:
+            raise ValueError("recycle_bin_retention_days must be between 1 and 3650")
         return value
 
     @field_validator("admin_user_ids")

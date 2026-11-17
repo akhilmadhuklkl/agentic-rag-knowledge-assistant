@@ -152,6 +152,7 @@ def admin_settings(request: Request, settings: Settings = Depends(get_settings))
     _require_admin(request, admins)
     return AdminSettingsResponse(
         audit_retention_days=settings.audit_retention_days,
+        recycle_bin_retention_days=settings.recycle_bin_retention_days,
         configured_admin_count=len(admins),
         admin_configuration="environment-managed",
     )
@@ -338,14 +339,15 @@ def permanently_delete_recycled_document(name: str, request: Request, settings: 
 
 
 @router.post("/documents/recycle-bin/purge", response_model=RecycleBinCleanupResponse)
-def purge_recycled_documents(request: Request, max_age_days: int = Query(default=30, ge=1, le=3650), settings: Settings = Depends(get_settings), storage: DocumentStorageService = Depends(get_document_storage)) -> RecycleBinCleanupResponse:  # noqa: B008
+def purge_recycled_documents(request: Request, max_age_days: int | None = Query(default=None, ge=1, le=3650), settings: Settings = Depends(get_settings), storage: DocumentStorageService = Depends(get_document_storage)) -> RecycleBinCleanupResponse:  # noqa: B008
     """Permanently remove recycled documents older than the administrator-selected age."""
 
     admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
     _require_admin(request, admins)
-    removed = storage.purge_recycle_bin(max_age_days)
+    retention_days = max_age_days if max_age_days is not None else settings.recycle_bin_retention_days
+    removed = storage.purge_recycle_bin(retention_days)
     for name in removed:
-        ingestion_repository.record("purged", name, f"Administrator purged recycle-bin item older than {max_age_days} days")
+        ingestion_repository.record("purged", name, f"Administrator purged recycle-bin item older than {retention_days} days")
     return RecycleBinCleanupResponse(removed=removed)
 
 

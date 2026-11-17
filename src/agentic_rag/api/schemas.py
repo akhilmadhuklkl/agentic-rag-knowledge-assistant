@@ -115,6 +115,7 @@ class SecurityAuditEventResponse(BaseModel):
 
 class AdminSettingsResponse(BaseModel):
     audit_retention_days: int
+    recycle_bin_retention_days: int
     configured_admin_count: int
     admin_configuration: str
 
