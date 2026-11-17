@@ -66,6 +66,8 @@ def test_document_management_hooks_are_present() -> None:
     assert "Load older cleanup runs" in JAVASCRIPT
     assert "/health/recycle-bin/summary" in JAVASCRIPT
     assert "recycle-summary" in JAVASCRIPT
+    assert "recycle-charts" in JAVASCRIPT
+    assert "cleanup-failure-trend" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
