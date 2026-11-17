@@ -171,6 +171,10 @@ class SQLiteOperationalRepository:
                 "uptime_seconds REAL NOT NULL, error_rate REAL NOT NULL, "
                 "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
             )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS recycle_bin_cleanup_runs "
+                "(id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, removed_count INTEGER NOT NULL, error TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+            )
 
     def record(self, status: str, uptime_seconds: float, error_rate: float) -> None:
         with self._connect() as connection:
@@ -187,6 +191,16 @@ class SQLiteOperationalRepository:
                 (limit,),
             ).fetchall()
         keys = ("status", "uptime_seconds", "error_rate", "created_at")
+        return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def record_cleanup(self, status: str, removed_count: int, error: str | None = None) -> None:
+        with self._connect() as connection:
+            connection.execute("INSERT INTO recycle_bin_cleanup_runs (status, removed_count, error) VALUES (?, ?, ?)", (status, removed_count, error))
+
+    def recent_cleanup(self, limit: int = 20) -> list[dict[str, object]]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT status, removed_count, error, created_at FROM recycle_bin_cleanup_runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        keys = ("status", "removed_count", "error", "created_at")
         return [dict(zip(keys, row, strict=True)) for row in rows]
 
     def purge_older_than(self, days: int) -> int:

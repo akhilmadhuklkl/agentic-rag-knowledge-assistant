@@ -36,6 +36,19 @@ def test_cleanup_worker_records_successful_purge(monkeypatch) -> None:
     assert len(ingestion.events) == 2
 
 
+def test_cleanup_worker_records_metrics_and_history(monkeypatch, tmp_path) -> None:
+    ingestion = FakeIngestion()
+    monkeypatch.setattr(app_module, "DocumentStorageService", FakeStorage)
+    monkeypatch.setattr(app_module, "ingestion_repository", ingestion)
+    repository = app_module.SQLiteOperationalRepository(tmp_path / "operations.db")
+    status: dict[str, object] = {"last_started_at": None, "last_run_at": None, "last_removed_count": 0, "last_error": None}
+
+    app_module.recycle_bin_cleanup_once(Settings(_env_file=None), status, repository)
+
+    assert repository.recent_cleanup(1)[0]["status"] == "success"
+    assert repository.recent_cleanup(1)[0]["removed_count"] == 2
+
+
 def test_cleanup_worker_reports_storage_errors(monkeypatch) -> None:
     class BrokenStorage(FakeStorage):
         def purge_recycle_bin(self, _retention_days: int) -> list[str]:

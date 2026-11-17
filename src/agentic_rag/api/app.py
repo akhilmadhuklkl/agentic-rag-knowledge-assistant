@@ -36,15 +36,15 @@ from agentic_rag.storage.documents import DocumentStorageService
 from agentic_rag.storage.repository import SQLiteAuditRepository, SQLiteOperationalRepository
 
 
-async def recycle_bin_cleanup_loop(settings: Settings, status: dict[str, object]) -> None:
+async def recycle_bin_cleanup_loop(settings: Settings, status: dict[str, object], operational_repository: SQLiteOperationalRepository | None = None) -> None:
     """Periodically purge expired recycle-bin files until application shutdown."""
 
     while True:
         await asyncio.sleep(settings.recycle_bin_cleanup_interval_seconds)
-        recycle_bin_cleanup_once(settings, status)
+        recycle_bin_cleanup_once(settings, status, operational_repository)
 
 
-def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object]) -> list[str]:
+def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object], operational_repository: SQLiteOperationalRepository | None = None) -> list[str]:
     """Run one cleanup cycle and update the observable worker status."""
 
     status["last_started_at"] = time.time()
@@ -56,11 +56,18 @@ def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object]) -> l
         status["last_run_at"] = time.time()
         status["last_removed_count"] = len(removed)
         status["last_error"] = None
+        metrics.increment("recycle_bin_cleanup_runs_total")
+        metrics.increment("recycle_bin_items_removed_total", len(removed))
+        if operational_repository:
+            operational_repository.record_cleanup("success", len(removed))
         if removed:
             logging.getLogger("agentic_rag").info("recycle_bin_cleanup_completed", extra={"removed": len(removed)})
         return removed
     except Exception as error:  # pragma: no cover - defensive worker boundary
         status["last_error"] = str(error)
+        metrics.increment("recycle_bin_cleanup_failures_total")
+        if operational_repository:
+            operational_repository.record_cleanup("error", 0, str(error))
         logging.getLogger("agentic_rag").exception("recycle_bin_cleanup_failed")
         return []
 
@@ -81,7 +88,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging(settings.log_level)
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
-        cleanup_task = asyncio.create_task(recycle_bin_cleanup_loop(settings, cleanup_status))
+        cleanup_task = asyncio.create_task(recycle_bin_cleanup_loop(settings, cleanup_status, operational_repository))
         try:
             yield
         finally:
@@ -107,6 +114,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "last_run_at": cleanup_status["last_run_at"],
             "last_removed_count": cleanup_status["last_removed_count"],
             "last_error": cleanup_status["last_error"],
+            "history": operational_repository.recent_cleanup(10),
         }
 
     @app.get("/", include_in_schema=False)
