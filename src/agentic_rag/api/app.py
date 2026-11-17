@@ -52,6 +52,7 @@ def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object], oper
     """Run one cleanup cycle and update the observable worker status."""
 
     status["last_started_at"] = time.time()
+    started = time.perf_counter()
     try:
         storage = DocumentStorageService(settings.document_storage_path)
         removed = storage.purge_recycle_bin(settings.recycle_bin_retention_days)
@@ -62,16 +63,18 @@ def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object], oper
         status["last_error"] = None
         metrics.increment("recycle_bin_cleanup_runs_total")
         metrics.increment("recycle_bin_items_removed_total", len(removed))
+        duration_ms = (time.perf_counter() - started) * 1000
         if operational_repository:
-            operational_repository.record_cleanup("success", len(removed), removed_names=removed)
+            operational_repository.record_cleanup("success", len(removed), removed_names=removed, duration_ms=duration_ms)
         if removed:
             logging.getLogger("agentic_rag").info("recycle_bin_cleanup_completed", extra={"removed": len(removed)})
         return removed
     except Exception as error:  # pragma: no cover - defensive worker boundary
         status["last_error"] = str(error)
         metrics.increment("recycle_bin_cleanup_failures_total")
+        duration_ms = (time.perf_counter() - started) * 1000
         if operational_repository:
-            operational_repository.record_cleanup("error", 0, str(error), [])
+            operational_repository.record_cleanup("error", 0, str(error), [], duration_ms)
         logging.getLogger("agentic_rag").exception("recycle_bin_cleanup_failed")
         return []
 

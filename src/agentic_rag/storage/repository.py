@@ -174,11 +174,13 @@ class SQLiteOperationalRepository:
             )
             connection.execute(
                 "CREATE TABLE IF NOT EXISTS recycle_bin_cleanup_runs "
-                "(id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, removed_count INTEGER NOT NULL, removed_names TEXT NOT NULL DEFAULT '[]', error TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+                "(id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, removed_count INTEGER NOT NULL, removed_names TEXT NOT NULL DEFAULT '[]', duration_ms REAL NOT NULL DEFAULT 0, error TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
             )
             columns = {row[1] for row in connection.execute("PRAGMA table_info(recycle_bin_cleanup_runs)").fetchall()}
             if "removed_names" not in columns:
                 connection.execute("ALTER TABLE recycle_bin_cleanup_runs ADD COLUMN removed_names TEXT NOT NULL DEFAULT '[]'")
+            if "duration_ms" not in columns:
+                connection.execute("ALTER TABLE recycle_bin_cleanup_runs ADD COLUMN duration_ms REAL NOT NULL DEFAULT 0")
 
     def record(self, status: str, uptime_seconds: float, error_rate: float) -> None:
         with self._connect() as connection:
@@ -197,14 +199,14 @@ class SQLiteOperationalRepository:
         keys = ("status", "uptime_seconds", "error_rate", "created_at")
         return [dict(zip(keys, row, strict=True)) for row in rows]
 
-    def record_cleanup(self, status: str, removed_count: int, error: str | None = None, removed_names: list[str] | None = None) -> None:
+    def record_cleanup(self, status: str, removed_count: int, error: str | None = None, removed_names: list[str] | None = None, duration_ms: float = 0) -> None:
         with self._connect() as connection:
-            connection.execute("INSERT INTO recycle_bin_cleanup_runs (status, removed_count, removed_names, error) VALUES (?, ?, ?, ?)", (status, removed_count, json.dumps(removed_names or []), error))
+            connection.execute("INSERT INTO recycle_bin_cleanup_runs (status, removed_count, removed_names, duration_ms, error) VALUES (?, ?, ?, ?, ?)", (status, removed_count, json.dumps(removed_names or []), duration_ms, error))
 
     def recent_cleanup(self, limit: int = 20) -> list[dict[str, object]]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT status, removed_count, removed_names, error, created_at FROM recycle_bin_cleanup_runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
-        keys = ("status", "removed_count", "removed_names", "error", "created_at")
+            rows = connection.execute("SELECT status, removed_count, removed_names, duration_ms, error, created_at FROM recycle_bin_cleanup_runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        keys = ("status", "removed_count", "removed_names", "duration_ms", "error", "created_at")
         return [{**dict(zip(keys, row, strict=True)), "removed_names": json.loads(row[2])} for row in rows]
 
     def cleanup_summary(self) -> dict[str, object]:
@@ -212,10 +214,10 @@ class SQLiteOperationalRepository:
 
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT COUNT(*), COALESCE(SUM(removed_count), 0), SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) FROM recycle_bin_cleanup_runs"
+                "SELECT COUNT(*), COALESCE(SUM(removed_count), 0), SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END), COALESCE(AVG(duration_ms), 0) FROM recycle_bin_cleanup_runs"
             ).fetchone()
-        total_runs, total_removed, successful_runs, failed_runs = (int(value or 0) for value in row)
-        return {"total_runs": total_runs, "total_removed": total_removed, "successful_runs": successful_runs, "failed_runs": failed_runs, "success_rate": round(successful_runs / total_runs, 4) if total_runs else 0.0}
+        total_runs, total_removed, successful_runs, failed_runs = (int(value or 0) for value in row[:4])
+        return {"total_runs": total_runs, "total_removed": total_removed, "successful_runs": successful_runs, "failed_runs": failed_runs, "success_rate": round(successful_runs / total_runs, 4) if total_runs else 0.0, "average_duration_ms": round(float(row[4] or 0), 2)}
 
     def purge_older_than(self, days: int) -> int:
         cutoff = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
