@@ -159,6 +159,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             media_type = "text/csv"
         return PlainTextResponse(content, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="atlas-cleanup-history.{format}"'})
 
+    @app.get("/health/recycle-bin/history", tags=["system"])
+    def recycle_bin_cleanup_history(request: Request, limit: int = Query(default=10, ge=1, le=100), offset: int = Query(default=0, ge=0)) -> dict[str, object]:
+        """Return a bounded page of cleanup history for report navigation."""
+
+        admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+        _require_admin(request, admins)
+        page = operational_repository.recent_cleanup(limit + 1)[offset:offset + limit + 1]
+        return {"items": page[:limit], "has_more": len(page) > limit, "offset": offset, "limit": limit}
+
     @app.get("/", include_in_schema=False)
     def primary_ui() -> RedirectResponse:
         return RedirectResponse(url="/app/")
