@@ -50,6 +50,8 @@ def test_document_management_hooks_are_present() -> None:
     assert "Permanently clean up" in JAVASCRIPT
     assert "age_days" in JAVASCRIPT
     assert "recycle_bin_retention_days" in JAVASCRIPT
+    assert "/health/recycle-bin" in JAVASCRIPT
+    assert "last_removed_count" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
