@@ -1,6 +1,9 @@
 """FastAPI application entry point."""
 
 import asyncio
+import csv
+import io
+import json
 import logging
 import sqlite3
 import time
@@ -8,8 +11,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from agentic_rag import __version__
@@ -130,6 +133,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "removed_count": len(removed),
             "error": cleanup_status["last_error"],
         }
+
+    @app.get("/health/recycle-bin/export", tags=["system"])
+    def export_recycle_bin_cleanup(request: Request, format: str = Query(default="json", pattern="^(json|csv)$")) -> PlainTextResponse:
+        """Export persisted recycle-bin cleanup history for administrators."""
+
+        admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+        _require_admin(request, admins)
+        history = operational_repository.recent_cleanup(1000)
+        if format == "json":
+            content = json.dumps(history, indent=2)
+            media_type = "application/json"
+        else:
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["status", "removed_count", "removed_names", "error", "created_at"])
+            for item in history:
+                writer.writerow([item["status"], item["removed_count"], "; ".join(item["removed_names"]), item["error"] or "", item["created_at"]])
+            content = output.getvalue()
+            media_type = "text/csv"
+        return PlainTextResponse(content, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="atlas-cleanup-history.{format}"'})
 
     @app.get("/", include_in_schema=False)
     def primary_ui() -> RedirectResponse:
