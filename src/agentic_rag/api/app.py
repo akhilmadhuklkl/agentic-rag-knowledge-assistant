@@ -8,6 +8,7 @@ import logging
 import sqlite3
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 import httpx
@@ -135,12 +136,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         }
 
     @app.get("/health/recycle-bin/export", tags=["system"])
-    def export_recycle_bin_cleanup(request: Request, format: str = Query(default="json", pattern="^(json|csv)$")) -> PlainTextResponse:
+    def export_recycle_bin_cleanup(request: Request, format: str = Query(default="json", pattern="^(json|csv)$"), from_date: str | None = Query(default=None), to_date: str | None = Query(default=None), status: str = Query(default="all", pattern="^(all|success|error)$")) -> PlainTextResponse:
         """Export persisted recycle-bin cleanup history for administrators."""
 
         admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
         _require_admin(request, admins)
         history = operational_repository.recent_cleanup(1000)
+        if from_date or to_date or status != "all":
+            start = datetime.fromisoformat(from_date).date() if from_date else None
+            end = datetime.fromisoformat(to_date).date() if to_date else None
+            history = [item for item in history if (status == "all" or item["status"] == status) and (not start or datetime.fromisoformat(f"{item['created_at']}+00:00").date() >= start) and (not end or datetime.fromisoformat(f"{item['created_at']}+00:00").date() <= end)]
         if format == "json":
             content = json.dumps(history, indent=2)
             media_type = "application/json"

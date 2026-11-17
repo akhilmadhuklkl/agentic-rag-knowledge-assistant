@@ -59,6 +59,9 @@ def test_document_management_hooks_are_present() -> None:
     assert "removed_names" in JAVASCRIPT
     assert "/health/recycle-bin/export" in JAVASCRIPT
     assert "data-cleanup-export" in JAVASCRIPT
+    assert "cleanup-from" in JAVASCRIPT
+    assert "cleanup-status" in JAVASCRIPT
+    assert "from_date" in JAVASCRIPT
 
 
 def test_quality_control_hooks_are_present() -> None:
