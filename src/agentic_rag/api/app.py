@@ -168,6 +168,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         page = operational_repository.recent_cleanup(limit + 1)[offset:offset + limit + 1]
         return {"items": page[:limit], "has_more": len(page) > limit, "offset": offset, "limit": limit}
 
+    @app.get("/health/recycle-bin/summary", tags=["system"])
+    def recycle_bin_cleanup_summary(request: Request) -> dict[str, object]:
+        """Return aggregate cleanup run and reliability statistics."""
+
+        admins = {value.strip() for value in settings.admin_user_ids.split(",") if value.strip()}
+        _require_admin(request, admins)
+        return operational_repository.cleanup_summary()
+
     @app.get("/", include_in_schema=False)
     def primary_ui() -> RedirectResponse:
         return RedirectResponse(url="/app/")

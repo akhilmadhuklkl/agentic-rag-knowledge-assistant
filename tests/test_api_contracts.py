@@ -16,6 +16,7 @@ def test_api_registers_product_routes_and_error_handlers() -> None:
     assert "/health/recycle-bin/run" in paths
     assert "/health/recycle-bin/export" in paths
     assert "/health/recycle-bin/history" in paths
+    assert "/health/recycle-bin/summary" in paths
     assert ValueError in app.exception_handlers
     assert FileNotFoundError in app.exception_handlers
 

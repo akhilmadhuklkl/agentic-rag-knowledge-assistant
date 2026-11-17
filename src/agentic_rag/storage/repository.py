@@ -207,6 +207,16 @@ class SQLiteOperationalRepository:
         keys = ("status", "removed_count", "removed_names", "error", "created_at")
         return [{**dict(zip(keys, row, strict=True)), "removed_names": json.loads(row[2])} for row in rows]
 
+    def cleanup_summary(self) -> dict[str, object]:
+        """Return aggregate cleanup reliability statistics."""
+
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT COUNT(*), COALESCE(SUM(removed_count), 0), SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) FROM recycle_bin_cleanup_runs"
+            ).fetchone()
+        total_runs, total_removed, successful_runs, failed_runs = (int(value or 0) for value in row)
+        return {"total_runs": total_runs, "total_removed": total_removed, "successful_runs": successful_runs, "failed_runs": failed_runs, "success_rate": round(successful_runs / total_runs, 4) if total_runs else 0.0}
+
     def purge_older_than(self, days: int) -> int:
         cutoff = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         with self._connect() as connection:

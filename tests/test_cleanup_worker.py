@@ -48,6 +48,8 @@ def test_cleanup_worker_records_metrics_and_history(monkeypatch, tmp_path) -> No
     assert repository.recent_cleanup(1)[0]["status"] == "success"
     assert repository.recent_cleanup(1)[0]["removed_count"] == 2
     assert repository.recent_cleanup(1)[0]["removed_names"] == ["old.txt", "expired.pdf"]
+    assert repository.cleanup_summary()["total_removed"] == 2
+    assert repository.cleanup_summary()["success_rate"] == 1.0
 
 
 def test_cleanup_worker_reports_storage_errors(monkeypatch) -> None:
