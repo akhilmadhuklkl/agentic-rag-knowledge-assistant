@@ -41,20 +41,28 @@ async def recycle_bin_cleanup_loop(settings: Settings, status: dict[str, object]
 
     while True:
         await asyncio.sleep(settings.recycle_bin_cleanup_interval_seconds)
-        status["last_started_at"] = time.time()
-        try:
-            storage = DocumentStorageService(settings.document_storage_path)
-            removed = storage.purge_recycle_bin(settings.recycle_bin_retention_days)
-            for name in removed:
-                ingestion_repository.record("purged", name, f"Automatic cleanup after {settings.recycle_bin_retention_days} days")
-            status["last_run_at"] = time.time()
-            status["last_removed_count"] = len(removed)
-            status["last_error"] = None
-            if removed:
-                logging.getLogger("agentic_rag").info("recycle_bin_cleanup_completed", extra={"removed": len(removed)})
-        except Exception as error:  # pragma: no cover - defensive worker boundary
-            status["last_error"] = str(error)
-            logging.getLogger("agentic_rag").exception("recycle_bin_cleanup_failed")
+        recycle_bin_cleanup_once(settings, status)
+
+
+def recycle_bin_cleanup_once(settings: Settings, status: dict[str, object]) -> list[str]:
+    """Run one cleanup cycle and update the observable worker status."""
+
+    status["last_started_at"] = time.time()
+    try:
+        storage = DocumentStorageService(settings.document_storage_path)
+        removed = storage.purge_recycle_bin(settings.recycle_bin_retention_days)
+        for name in removed:
+            ingestion_repository.record("purged", name, f"Automatic cleanup after {settings.recycle_bin_retention_days} days")
+        status["last_run_at"] = time.time()
+        status["last_removed_count"] = len(removed)
+        status["last_error"] = None
+        if removed:
+            logging.getLogger("agentic_rag").info("recycle_bin_cleanup_completed", extra={"removed": len(removed)})
+        return removed
+    except Exception as error:  # pragma: no cover - defensive worker boundary
+        status["last_error"] = str(error)
+        logging.getLogger("agentic_rag").exception("recycle_bin_cleanup_failed")
+        return []
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
